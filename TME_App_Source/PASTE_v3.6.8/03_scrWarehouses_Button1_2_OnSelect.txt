@@ -1,0 +1,42 @@
+If(((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(varLocationCode) & "|") in pgAccess.LocationCode),If(!Coalesce(varCountLoadDoneV21,false),
+ Notify("Тооллогын өгөгдөл ачаалж байна. Түр хүлээгээд дахин хадгална уу.",NotificationType.Warning),
+Coalesce(varHistoryLoading,false) || Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false),
+ Notify("Одоогийн хадгалалт дуусахыг хүлээнэ үү.",NotificationType.Information),
+!Coalesce(varCountDiskSafeV21,false) && !Connection.Connected,
+ Notify("Офлайн хадгалалтын сан бэлэн биш байна. Интернэтэд холбогдож өгөгдлөө сэргээсний дараа дахин хадгална уу.",NotificationType.Error,10000),
+IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)),Notify("Microsoft 365 хэрэглэгчийг шалгана уу.",NotificationType.Error),
+IsBlank(varItem.number) || IsBlank(varLocationCode) || Trim(txtSearch_4.Text)<>varItem.number,Notify("Бараа болон тухайн агуулахыг сонгоно уу. Хайлтад бичсэн бараагаа баталгаажуулна уу.",NotificationType.Warning),
+IsBlank(txtCountQty_2.Text) || !IsNumeric(txtCountQty_2.Text) || IfError(Value(txtCountQty_2.Text)<0,true),Notify("0 буюу түүнээс их тоо оруулна уу.",NotificationType.Warning),
+IsEmpty(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && locationCode=varLocationCode)),Notify("Энэ барааны агуулахын үлдэгдэл алга байна.",NotificationType.Warning),
+IsBlank(varOpeningBalance),Notify("Эхний үлдэгдэл тодорхойгүй байна. Агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+!(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance),Notify("Сонгосон бараа, агуулах, эхний үлдэгдэл хоорондоо тохирохгүй байна. Бараа болон агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);
+If(IsBlank(varCountAttemptKeyV21),Set(varCountAttemptKeyV21,Text(GUID())));Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
+With({_key:varCountAttemptKeyV21,_opening:varOpeningBalance,_qty:Value(txtCountQty_2.Text)},
+ Collect(colOfflineInventory,{SyncKey:_key,CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,
+ LocationCode:varLocationCode,OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:Now(),Counter:User().FullName,
+ OwnerEmail:varCountOwner,Revision:1,Archived:false,SharePointID:0,SyncError:"",Reason:If(App.Width<First(App.SizeBreakpoints).Value && phoneReasonItem=varItem.number,Coalesce(phoneCountReason,""),""),Comment:If(App.Width<First(App.SizeBreakpoints).Value,phoneCountNote.Text,""),Resolved:false,Synced:false});
+ IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+SaveData(colCountDiskV21,varCountCacheKey)),
+  Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message),
+  Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varCountSavedV21,true));
+ If(!varCountSavedV21 && Connection.Connected,
+  IfError(With({_existing:Coalesce(LookUp(InventoryCount,CountKeyV27=_key && Counter=varCountOwner),LookUp(InventoryCount,Title=varCountAttemptTitleV21 && Counter=varCountOwner))},
+   With({_saved:Patch(InventoryCount,If(IsBlank(_existing.ID),Defaults(InventoryCount),_existing),{
+    CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,LocationCode:varLocationCode,
+    OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:LookUp(colOfflineInventory,SyncKey=_key,CountDate),
+    Counter:varCountOwner,Reason:If(App.Width<First(App.SizeBreakpoints).Value && phoneReasonItem=varItem.number,Coalesce(phoneCountReason,""),""),Comment:If(App.Width<First(App.SizeBreakpoints).Value,phoneCountNote.Text,""),Resolved:false})},
+    If(IsBlank(_saved.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер хадгалалтыг баталгаажуулсангүй."}),
+     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_key),{SharePointID:_saved.ID,Synced:true});Set(varCountSavedV21,true);Set(varCountCloudOnlyV21,true))));true,
+   Set(varCountCloudSaveErrorV21,FirstError.Message);false));
+ If(varCountSavedV21,
+  Set(varCountLastSavedAtV21,Now());Set(varCountLastSavedQtyV21,_qty);Set(varCountLastSavedItemV21,varItem.number);
+  Notify(If(varCountCloudOnlyV21,"SharePoint-д хадгаллаа. Төхөөрөмжийн оффлайн хуулбар хадгалагдаагүй.","Төхөөрөмжид хадгаллаа · интернет ормогц автоматаар илгээнэ."),If(varCountCloudOnlyV21,NotificationType.Warning,NotificationType.Success));
+  Set(varCountAttemptKeyV21,Blank());Set(varItem,Blank());Set(varOpeningBalance,Blank());Set(varBarcodeText,Blank());
+  Set(varItemPicture,Blank());Set(varNewPicture,Blank());Set(varJustSelected,false);Set(varLocationCode,Blank());Set(varLocationName,Blank());Clear(colCountLocationsV19);
+  Set(phoneCountItem,Blank());Set(phoneCountValue,Blank());Set(phoneCountReason,Blank());Set(phoneReasonItem,Blank());Set(phoneCountNoteOpen,false);Reset(phoneCountNote);Reset(txtCountQty_2);Reset(txtSearch_4);Reset(AddMediaButton2_1),
+  RemoveIf(colOfflineInventory,SyncKey=_key);
+  Notify("Хадгалагдсангүй. Оруулсан тоо хэвээр үлдсэн. " & If(Connection.Connected,Coalesce(varCountCloudSaveErrorV21,varCountStorageError),varCountStorageError),NotificationType.Error)));
+Set(varCountUploadQueue,Connection.Connected && varCountCacheReady && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));Set(varCountSaving,false))
+,Notify("Энэ агуулахад тооллого хадгалах эрхгүй.",NotificationType.Error))

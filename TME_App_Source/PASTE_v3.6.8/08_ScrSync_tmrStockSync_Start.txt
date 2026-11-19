@@ -1,0 +1,2 @@
+If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false // v3.6.7: mixed Excel+BC delta stock sync disabled (was varStockAutoSync)
+)

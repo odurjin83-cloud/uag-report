@@ -1,0 +1,28 @@
+If(App.Width<First(App.SizeBreakpoints).Value,Set(phoneCountItem,Blank());Set(phoneCountValue,Blank());Set(phoneCountReason,Blank());Set(phoneReasonItem,Blank());Set(phoneCountNoteOpen,false);Reset(phoneCountNote);Reset(txtCountQty_2));Set(
+    varBarcodeText,
+    Text(
+        First(BarcodeReader3.Barcodes).Value
+    )
+);
+
+Set(
+    varItem,
+    LookUp(
+        colOfflineItems,
+        number = varBarcodeText
+    )
+);
+
+If(
+    IsBlank(varItem),
+    Notify(
+        "Бараа олдсонгүй",
+        NotificationType.Warning
+    ),
+    Set(
+        varJustSelected,
+        true
+    )
+);Set(varNewPicture,Blank());Set(varItemPicture,Blank());Reset(AddMediaButton2_1);Set(varLocationCode,Blank());Set(varLocationName,Blank());Set(varOpeningBalance,Blank());Set(varShowWarehouseList,false);
+Set(varCountLocItemV367,varItem.number);ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Name),l.locationCode),Qty:Sum(l.LocationRows,quantity)}));
+If(!IsBlank(varItem.number),If(CountRows(colCountLocationsV19)=1,Set(varLocationCode,First(colCountLocationsV19).code);Set(varLocationName,First(colCountLocationsV19).displayName);Set(varOpeningBalance,First(colCountLocationsV19).Qty),CountRows(colCountLocationsV19)>1,Set(varShowWarehouseList,true),Notify("Энэ барааны агуулахын үлдэгдэл хадгалсан мэдээлэлд алга. Онлайн шинэчлэлт хийсний дараа дахин шалгана уу.",NotificationType.Warning)))

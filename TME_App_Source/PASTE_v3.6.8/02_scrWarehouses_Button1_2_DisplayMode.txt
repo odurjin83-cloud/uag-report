@@ -1,0 +1,2 @@
+If(App.Width<First(App.SizeBreakpoints).Value,If(IsBlank(varItem.number) || IsBlank(varLocationCode),DisplayMode.Disabled,If(varCountMenuV21,DisplayMode.Disabled,If(varCountSaving || varCountSyncBusy || varHistoryLoading || !Coalesce(varCountLoadDoneV21,false),DisplayMode.Disabled,DisplayMode.Edit))),If(varCountMenuV21,DisplayMode.Disabled,If(varCountSaving || varCountSyncBusy || varHistoryLoading || !Coalesce(varCountLoadDoneV21,false),DisplayMode.Disabled,DisplayMode.Edit))
+)
