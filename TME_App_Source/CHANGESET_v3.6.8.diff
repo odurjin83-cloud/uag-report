@@ -1,0 +1,64 @@
+diff --git a/TME_App_Source/raw/Src/App.pa.yaml b/TME_App_Source/raw/Src/App.pa.yaml
+index 80d8ae9..d7bb2d3 100644
+--- a/TME_App_Source/raw/Src/App.pa.yaml
++++ b/TME_App_Source/raw/Src/App.pa.yaml
+@@ -11,7 +11,7 @@ App:
+     MinScreenHeight: =320
+     MinScreenWidth: =320
+     OnStart: |-
+-      =Set(varPictureResponse,{picture:""});// ==========================================
++      =Set(varPerfStartV368,Now());Set(varPictureResponse,{picture:""});// ==========================================
+       // APP.ONSTART
+       // OFFLINE CACHE SAFE LOAD
+       // ==========================================
+@@ -205,13 +205,19 @@ App:
+        Set(varCountDiskSafeV21,true);true,
+        Set(varCountLoadErrorV21,true);Set(varCountStorageError,FirstError.Message);false);
+       If(varCountDiskSafeV21,
+-       ForAll(Filter(colPreviousCountV21,OwnerEmail=varCountOwner) As old,
+-        If(IsBlank(LookUp(colOfflineInventory,SyncKey=old.SyncKey)),Collect(colOfflineInventory,old)));
++       // v3.6.8: set-based merge of the V19 cache (same rule: add an own row only if its SyncKey is not loaded yet; first row per SyncKey wins).
++       ClearCollect(colPrevAddV368,Filter(colPreviousCountV21,OwnerEmail=varCountOwner && !(SyncKey in colOfflineInventory.SyncKey)));
++       Set(varPerfPrevAddedV368,CountRows(colPrevAddV368));
++       If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,First(g.PrevRows))));
++       Clear(colPrevAddV368);
++       // v3.6.8: disk already holds exactly what was loaded, so rewrite it only when V19 rows were merged in.
++       If(varPerfPrevAddedV368=0,Set(varCountCacheReady,true);Set(varCountStorageError,""),
+        IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+       ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+-      SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,""))));
++      SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,"")))));
++      Set(varPerfPrevRowsV368,CountRows(colPreviousCountV21));
+       Clear(colPreviousCountV21);
+-      Set(varCountLoadDoneV21,true);
++      Set(varCountLoadDoneV21,true);Set(varPerfCountLoadedV368,Now());Set(varPerfCountRowsV368,CountRows(colOfflineInventory));
+ 
+       // ==========================================
+       // 6. STOCK SYNC VARIABLES
+@@ -452,7 +458,8 @@ App:
+           Set(varHistoryCloudError,true);false);
+       Set(varHistoryLoading,false)));
+       Set(varLoadedItemRows,CountRows(colOfflineItems));Set(varLoadedStockRows,CountRows(colOfflineStock));
+-      If(!Coalesce(varDStockBuildingV17,false),
++      // v3.6.8: rebuild dashboard stock only if items or stock were refreshed in this run, or no dashboard cache exists.
++      If(!Coalesce(varDStockBuildingV17,false) && (!varDStockReadyV17 || !Coalesce(varAutoItemsError,true) || !Coalesce(varAutoStockError,true)),
+       Set(varDStockBuildingV17,true);
+       IfError(
+       ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,JoinCost:i.unitCost,JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+@@ -469,9 +476,13 @@ App:
+       Set(varDStockReadyV17,false);Clear(colDJoinV17);false);
+       Set(varDStockBuildingV17,false));Set(varAutoDataChecked,Now());Set(varStartupSyncRunning,false);
+       Set(varCountUploadQueue,!IsEmpty(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !Synced))));
+-      ClearCollect(colHomeLatest,ForAll(GroupBy(Filter(colOfflineInventory,!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !IsBlank(ItemNo)),ItemNo,LocationCode,HomeRows) As g,Patch(First(SortByColumns(g.HomeRows,"CountDate",SortOrder.Descending,"SyncKey",SortOrder.Descending)),{ItemNo:g.ItemNo,LocationCode:g.LocationCode})));
+-      ClearCollect(colHomeMonths,ForAll(Sequence(8) As m,With({d:DateAdd(Date(Year(Today()),Month(Today()),1),m.Value-8,TimeUnit.Months)},{MonthDate:d,Total:CountRows(Filter(colOfflineInventory,!Coalesce(Archived,false) && OwnerEmail=varCountOwner && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months))),Pending:CountRows(Filter(colOfflineInventory,!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !Synced && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months)))})));
++      // v3.6.8: home KPIs are computed by нүүр.OnVisible (permission-filtered). Recompute here only when
++      // the user is already on нүүр (non-blocking OnStart: нүүр may have rendered before the count cache loaded).
++      If(App.ActiveScreen='нүүр',
++      ClearCollect(colHomeLatest,ForAll(GroupBy(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !IsBlank(ItemNo)),ItemNo,LocationCode,HomeRows) As g,Patch(First(SortByColumns(g.HomeRows,"CountDate",SortOrder.Descending,"SyncKey",SortOrder.Descending)),{ItemNo:g.ItemNo,LocationCode:g.LocationCode})));
++      ClearCollect(colHomeMonths,ForAll(Sequence(8) As m,With({d:DateAdd(Date(Year(Today()),Month(Today()),1),m.Value-8,TimeUnit.Months)},{MonthDate:d,Total:CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months))),Pending:CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !Synced && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months)))})));
+       Set(varHomeAccuracy,If(IsEmpty(colHomeLatest),Blank(),CountRows(Filter(colHomeLatest,!IsBlank(OpeningBalance) && !IsBlank(CountQty) && CountQty=OpeningBalance))/CountRows(colHomeLatest)*100));
+-      Set(varHomeEstimate,If(IsEmpty(colOfflineItems),Blank(),Sum(colOfflineItems,inventory*unitCost)))
++      Set(varHomeEstimate,If(IsEmpty(colOfflineItems),Blank(),Sum(colOfflineItems,inventory*unitCost))));
++      Set(varPerfOnStartEndV368,Now())
+     StartScreen: =ScrAccess
+     Theme: =PowerAppsTheme
