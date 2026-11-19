@@ -1372,7 +1372,7 @@ Screens:
               IsBlank(varOpeningBalance),Notify("Эхний үлдэгдэл тодорхойгүй байна. Агуулахаа дахин сонгоно уу.",NotificationType.Warning),
               !(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance),Notify("Сонгосон бараа, агуулах, эхний үлдэгдэл хоорондоо тохирохгүй байна. Бараа болон агуулахаа дахин сонгоно уу.",NotificationType.Warning),
               Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);
-              If(IsBlank(varCountAttemptKeyV21),Set(varCountAttemptKeyV21,Text(GUID())));Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
+              With({_sig:varItem.number & "|" & Upper(varLocationCode) & "|" & Text(Value(txtCountQty_2.Text))},If(IsBlank(varCountAttemptKeyV21) || Coalesce(varCountAttemptSigV368,"")<>_sig,Set(varCountAttemptKeyV21,Text(GUID()));Set(varCountAttemptSigV368,_sig)));Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
               With({_key:varCountAttemptKeyV21,_opening:varOpeningBalance,_qty:Value(txtCountQty_2.Text)},
                Collect(colOfflineInventory,{SyncKey:_key,CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,
                LocationCode:varLocationCode,OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:Now(),Counter:User().FullName,

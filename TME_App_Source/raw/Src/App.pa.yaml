@@ -208,10 +208,10 @@ App:
        // v3.6.8: set-based merge of the V19 cache (same rule: add an own row only if its SyncKey is not loaded yet; first row per SyncKey wins).
        ClearCollect(colPrevAddV368,Filter(colPreviousCountV21,OwnerEmail=varCountOwner && !(SyncKey in colOfflineInventory.SyncKey)));
        Set(varPerfPrevCandidatesV368,CountRows(colPrevAddV368));
-       If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,First(g.PrevRows))));
+       If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,Patch(First(g.PrevRows),{SyncKey:g.SyncKey}))));
        Clear(colPrevAddV368);
-       // v3.6.8: disk already holds exactly what was loaded, so rewrite it only when V19 rows were merged in.
-       If(varPerfPrevCandidatesV368=0,Set(varCountCacheReady,true);Set(varCountStorageError,""),
+       // v3.6.8: disk already holds exactly what was loaded, so skip the rewrite only when a C21 file was loaded and no V19 rows were merged (first launch still writes and tests the disk).
+       If(varPerfPrevCandidatesV368=0 && !IsEmpty(colCountDiskV21),Set(varCountCacheReady,true);Set(varCountStorageError,""),
        IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
       ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
       SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,"")))));

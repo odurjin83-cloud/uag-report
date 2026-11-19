@@ -1,0 +1,75 @@
+diff --git a/TME_App_Source/PASTE_v3.6.8/01_App_OnStart.txt b/TME_App_Source/PASTE_v3.6.8/01_App_OnStart.txt
+index ad18ecd..bb13335 100644
+--- a/TME_App_Source/PASTE_v3.6.8/01_App_OnStart.txt
++++ b/TME_App_Source/PASTE_v3.6.8/01_App_OnStart.txt
+@@ -195,10 +195,10 @@ If(varCountDiskSafeV21,
+  // v3.6.8: set-based merge of the V19 cache (same rule: add an own row only if its SyncKey is not loaded yet; first row per SyncKey wins).
+  ClearCollect(colPrevAddV368,Filter(colPreviousCountV21,OwnerEmail=varCountOwner && !(SyncKey in colOfflineInventory.SyncKey)));
+  Set(varPerfPrevCandidatesV368,CountRows(colPrevAddV368));
+- If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,First(g.PrevRows))));
++ If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,Patch(First(g.PrevRows),{SyncKey:g.SyncKey}))));
+  Clear(colPrevAddV368);
+- // v3.6.8: disk already holds exactly what was loaded, so rewrite it only when V19 rows were merged in.
+- If(varPerfPrevCandidatesV368=0,Set(varCountCacheReady,true);Set(varCountStorageError,""),
++ // v3.6.8: disk already holds exactly what was loaded, so skip the rewrite only when a C21 file was loaded and no V19 rows were merged (first launch still writes and tests the disk).
++ If(varPerfPrevCandidatesV368=0 && !IsEmpty(colCountDiskV21),Set(varCountCacheReady,true);Set(varCountStorageError,""),
+  IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+ ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+ SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,"")))));
+diff --git a/TME_App_Source/PASTE_v3.6.8/03_scrWarehouses_Button1_2_OnSelect.txt b/TME_App_Source/PASTE_v3.6.8/03_scrWarehouses_Button1_2_OnSelect.txt
+index 3c4d9a8..6523a3b 100644
+--- a/TME_App_Source/PASTE_v3.6.8/03_scrWarehouses_Button1_2_OnSelect.txt
++++ b/TME_App_Source/PASTE_v3.6.8/03_scrWarehouses_Button1_2_OnSelect.txt
+@@ -11,7 +11,7 @@ IsEmpty(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.L
+ IsBlank(varOpeningBalance),Notify("Эхний үлдэгдэл тодорхойгүй байна. Агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+ !(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance),Notify("Сонгосон бараа, агуулах, эхний үлдэгдэл хоорондоо тохирохгүй байна. Бараа болон агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+ Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);
+-If(IsBlank(varCountAttemptKeyV21),Set(varCountAttemptKeyV21,Text(GUID())));Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
++With({_sig:varItem.number & "|" & Upper(varLocationCode) & "|" & Text(Value(txtCountQty_2.Text))},If(IsBlank(varCountAttemptKeyV21) || Coalesce(varCountAttemptSigV368,"")<>_sig,Set(varCountAttemptKeyV21,Text(GUID()));Set(varCountAttemptSigV368,_sig)));Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
+ With({_key:varCountAttemptKeyV21,_opening:varOpeningBalance,_qty:Value(txtCountQty_2.Text)},
+  Collect(colOfflineInventory,{SyncKey:_key,CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,
+  LocationCode:varLocationCode,OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:Now(),Counter:User().FullName,
+diff --git a/TME_App_Source/raw/Src/App.pa.yaml b/TME_App_Source/raw/Src/App.pa.yaml
+index b9a8911..18268f6 100644
+--- a/TME_App_Source/raw/Src/App.pa.yaml
++++ b/TME_App_Source/raw/Src/App.pa.yaml
+@@ -208,10 +208,10 @@ App:
+        // v3.6.8: set-based merge of the V19 cache (same rule: add an own row only if its SyncKey is not loaded yet; first row per SyncKey wins).
+        ClearCollect(colPrevAddV368,Filter(colPreviousCountV21,OwnerEmail=varCountOwner && !(SyncKey in colOfflineInventory.SyncKey)));
+        Set(varPerfPrevCandidatesV368,CountRows(colPrevAddV368));
+-       If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,First(g.PrevRows))));
++       If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,Patch(First(g.PrevRows),{SyncKey:g.SyncKey}))));
+        Clear(colPrevAddV368);
+-       // v3.6.8: disk already holds exactly what was loaded, so rewrite it only when V19 rows were merged in.
+-       If(varPerfPrevCandidatesV368=0,Set(varCountCacheReady,true);Set(varCountStorageError,""),
++       // v3.6.8: disk already holds exactly what was loaded, so skip the rewrite only when a C21 file was loaded and no V19 rows were merged (first launch still writes and tests the disk).
++       If(varPerfPrevCandidatesV368=0 && !IsEmpty(colCountDiskV21),Set(varCountCacheReady,true);Set(varCountStorageError,""),
+        IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+       ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+       SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,"")))));
+diff --git a/TME_App_Source/raw/Src/scrWarehouses.pa.yaml b/TME_App_Source/raw/Src/scrWarehouses.pa.yaml
+index 680acfd..2ab49d7 100644
+--- a/TME_App_Source/raw/Src/scrWarehouses.pa.yaml
++++ b/TME_App_Source/raw/Src/scrWarehouses.pa.yaml
+@@ -1372,7 +1372,7 @@ Screens:
+               IsBlank(varOpeningBalance),Notify("Эхний үлдэгдэл тодорхойгүй байна. Агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+               !(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance),Notify("Сонгосон бараа, агуулах, эхний үлдэгдэл хоорондоо тохирохгүй байна. Бараа болон агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+               Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);
+-              If(IsBlank(varCountAttemptKeyV21),Set(varCountAttemptKeyV21,Text(GUID())));Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
++              With({_sig:varItem.number & "|" & Upper(varLocationCode) & "|" & Text(Value(txtCountQty_2.Text))},If(IsBlank(varCountAttemptKeyV21) || Coalesce(varCountAttemptSigV368,"")<>_sig,Set(varCountAttemptKeyV21,Text(GUID()));Set(varCountAttemptSigV368,_sig)));Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
+               With({_key:varCountAttemptKeyV21,_opening:varOpeningBalance,_qty:Value(txtCountQty_2.Text)},
+                Collect(colOfflineInventory,{SyncKey:_key,CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,
+                LocationCode:varLocationCode,OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:Now(),Counter:User().FullName,
+diff --git "a/TME_App_Source/raw/Src/\320\275\322\257\322\257\321\200.pa.yaml" "b/TME_App_Source/raw/Src/\320\275\322\257\322\257\321\200.pa.yaml"
+index f38a3a4..d9d1a44 100644
+--- "a/TME_App_Source/raw/Src/\320\275\322\257\322\257\321\200.pa.yaml"
++++ "b/TME_App_Source/raw/Src/\320\275\322\257\322\257\321\200.pa.yaml"
+@@ -5295,7 +5295,7 @@ Screens:
+                         HoverColor: =ColorValue("#202225")
+                         HoverFill: =ColorValue("#EAE7E3")
+                         OnSelect: |-
+-                          =Set(varItem,ThisItem);Set(varBarcodeText,ThisItem.number);Set(varJustSelected,true);Set(varOpeningBalance,Sum(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=ThisItem.number && locationCode=varLocationCode),quantity));Set(varNewPicture,Blank());Set(varItemPicture,Blank());Set(varHomeSearch,false);Navigate(scrWarehouses,ScreenTransition.Fade)
++                          =Set(varItem,ThisItem);Set(varBarcodeText,ThisItem.number);Set(varJustSelected,true);Set(varCountAttemptKeyV21,Blank());Set(varLocationCode,Blank());Set(varLocationName,Blank());Set(varOpeningBalance,Blank());Set(varShowWarehouseList,false);Set(varCountLocItemV367,varItem.number);ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Name),l.locationCode),Qty:Sum(l.LocationRows,quantity)}));If(!IsBlank(varItem.number),If(CountRows(colCountLocationsV19)=1,Set(varLocationCode,First(colCountLocationsV19).code);Set(varLocationName,First(colCountLocationsV19).displayName);Set(varOpeningBalance,First(colCountLocationsV19).Qty),CountRows(colCountLocationsV19)>1,Set(varShowWarehouseList,true),Notify("Энэ барааны агуулахын үлдэгдэл хадгалсан мэдээлэлд алга. Онлайн шинэчлэлт хийсний дараа дахин шалгана уу.",NotificationType.Warning)));Set(varNewPicture,Blank());Set(varItemPicture,Blank());Set(varHomeSearch,false);Navigate(scrWarehouses,ScreenTransition.Fade)
+                         PaddingLeft: =0
+                         PaddingRight: =0
+                         PressedBorderColor: =Self.Fill
