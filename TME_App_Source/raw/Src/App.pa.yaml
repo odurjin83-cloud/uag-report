@@ -183,7 +183,7 @@ App:
       Clear(colOfflineInventory);
       Set(varCountOwner,Lower(Trim(User().Email)));
       Set(varCountCacheKey,"C21" & Substitute(Text(User().EntraObjectId),"-",""));
-      Set(varCountStorageError,"");Set(varCountSyncBusy,false);Set(varCountSaving,false);Set(varCountCacheReady,false);
+      Set(varCountLoadDoneV21,false);Set(varCountStorageError,"");Set(varCountSyncBusy,false);Set(varCountSaving,false);Set(varCountCacheReady,false);
       Set(varCountDiskSafeV21,false);Set(varCountLoadErrorV21,false);Set(varCountMenuV21,false);Set(varCountCloudOnlyV21,false);
       ClearCollect(colCountDiskV21,{Schema:21,Owner:"",Payload:"[]"});Clear(colCountDiskV21);
       ClearCollect(colLegacyInventory,colOfflineInventory);
@@ -211,6 +211,7 @@ App:
       ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
       SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,""))));
       Clear(colPreviousCountV21);
+      Set(varCountLoadDoneV21,true);
 
       // ==========================================
       // 6. STOCK SYNC VARIABLES

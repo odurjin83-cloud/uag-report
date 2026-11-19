@@ -827,7 +827,7 @@ Screens:
             Repeat: =varStockAutoSync
             Size: =(13)*(Min(App.Width/640,App.Height/1136))
             Start: |-
-              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),varStockAutoSync
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false // v3.6.7: mixed Excel+BC delta stock sync disabled (was varStockAutoSync)
               )
             Visible: |-
               =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
@@ -1082,7 +1082,7 @@ Screens:
             Repeat: =true
             Size: =(13)*(Min(App.Width/640,App.Height/1136))
             Start: |-
-              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),varItemAutoSync
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false // v3.6.7: mixed Excel+BC delta stock sync disabled (was varItemAutoSync)
               )
             Visible: |-
               =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
