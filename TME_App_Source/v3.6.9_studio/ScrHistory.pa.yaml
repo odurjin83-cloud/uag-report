@@ -1,0 +1,1859 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ScrHistory:
+    Properties:
+      Fill: =ColorValue("#0B1011")
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      OnVisible: |-
+        =Set(pgAccess,Blank());If(Connection.Connected,IfError(Refresh(AssetUserAccess);Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(varFromDate,DateAdd(Today(),-24,TimeUnit.Days));Set(varToDate,Today());Set(varFilterType,"Бүгд");Set(varHistoryArchive,false);Set(varHistoryTrash,false);Set(varHistoryDeleteConfirm,false);If(IsBlank(varHistoryRefreshed) || DateDiff(varHistoryRefreshed,Now(),TimeUnit.Minutes)>=5,If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
+        Set(varHistoryLoading,true);Set(varHistoryCloudError,false);
+        IfError(
+            Refresh(InventoryCount);
+            ClearCollect(colRestoreCloudV16,Filter(InventoryCount,Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)));
+            Set(varHistoryCloudLimit,CountRows(colRestoreCloudV16)>=5000);
+            ClearCollect(colRestoreRowsV16,ForAll(colRestoreCloudV16 As r,With({_title:If(StartsWith(r.Title,"ARCHIVED:"),Mid(r.Title,10),r.Title)},{
+                SyncKey:If(StartsWith(_title,"COUNT:"),Mid(_title,7),"SP-" & Text(r.ID)),
+                Title:_title,Archived:StartsWith(r.Title,"ARCHIVED:"),ItemNo:r.ItemNo,ItemName:r.ItemName,LocationCode:Trim(r.LocationCode),
+                OpeningBalance:IfError(Value(r.OpeningBalance),Blank()),CountQty:IfError(Value(r.CountQty),Blank()),
+                Variance:IfError(Value(r.CountQty)-Value(r.OpeningBalance),Blank()),CountDate:IfError(DateTimeValue(r.CountDate),Blank()),
+                Counter:Coalesce(r.Counter,User().FullName),OwnerEmail:varCountOwner,SharePointID:r.ID,Revision:0,SyncError:"",
+                Reason:r.Reason,Comment:r.Comment,Resolved:r.Resolved,Synced:true})));
+            ClearCollect(colHistoryMergeV16,AddColumns(colOfflineInventory,MergePriority,If(Synced,0,2)));
+            Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
+            ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
+                Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
+            ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));
+            Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
+            If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+        ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+        SaveData(colCountDiskV21,varCountCacheKey)),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+            true,
+            Set(varHistoryCloudError,true);false);
+        Set(varHistoryLoading,false)))
+        )
+      Width: =App.Width
+    Children:
+      - Label15:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(62)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: =If(varHistoryArchive,"Хуучин төхөөрөмжийн түүх",varHistoryTrash,"Хогийн сав","Тооллогын түүх")
+            Width: =(262)*((App.Width/640))
+            X: =(91)*((App.Width/640))
+            Y: =(29)*((App.Height/1136))
+      - Gallery1:
+          Control: Gallery@2.15.0
+          Variant: BrowseLayout_Vertical_ThreeTextVariant_ver5.0
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =ColorValue("#0B0F0F")
+            Height: =(549)*((App.Height/1136))
+            Items: |-
+              =If(varHistoryArchive,Filter(colLegacyInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),Counter=User().FullName && 
+                  CountDate >= Min(varFromDate, varToDate) &&
+                  CountDate <
+                      DateAdd(
+                          Max(varFromDate, varToDate),
+                          1,
+                          TimeUnit.Days
+                      )
+              ),Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && Coalesce(Archived,false)=varHistoryTrash && 
+                  CountDate >= Min(varFromDate, varToDate) &&
+                  CountDate <
+                      DateAdd(
+                          Max(varFromDate, varToDate),
+                          1,
+                          TimeUnit.Days
+                      )
+              ))
+            TemplatePadding: =(0)*((App.Height/1136))
+            TemplateSize: =(118)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(640)*((App.Width/640))
+            X: =(0)*((App.Width/640))
+            Y: =(210)*((App.Height/1136))
+          Children:
+            - Button8:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#E2E6E3")
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =RGBA(255, 255, 255, 1)
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: =ColorValue("#0B0F0F")
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =((Parent.TemplateHeight/((App.Height/1136))) - 12)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: =Select(Parent)
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                  Text: =""
+                  Width: =((Parent.TemplateWidth/((App.Width/640))) - 16)*((App.Width/640))
+                  X: =(8)*((App.Width/640))
+                  Y: =(6)*((App.Height/1136))
+            - Label5:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#879393")
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(14)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  Size: =(7)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="PCS"
+                  Width: =(90)*((App.Width/640))
+                  X: =(550)*((App.Width/640))
+                  Y: =(45)*((App.Height/1136))
+            - Label23:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =Color.White
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =(30)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  Size: |-
+                    =(If(
+                        Len(Text(ThisItem.CountQty)) >= 7,
+                        11,
+                        14
+                    ))*(Min(App.Width/640,App.Height/1136))
+                  Text: |-
+                    =Text(
+                        ThisItem.CountQty,
+                        "#,##0"
+                    )
+                  Width: =(90)*((App.Width/640))
+                  Wrap: =false
+                  X: =(550)*((App.Width/640))
+                  Y: =(18)*((App.Height/1136))
+            - Title5:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 1)
+                  Color: =Color.White
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =(20)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =(11)*(Min(App.Width/640,App.Height/1136))
+                  Text: =ThisItem.ItemNo
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =(130)*((App.Width/640))
+                  X: =(26)*((App.Width/640))
+                  Y: =(12)*((App.Height/1136))
+            - Subtitle2:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 1)
+                  Color: =Color.White
+                  Font: =Font.'Open Sans'
+                  FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+                  Height: =(20)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: |-
+                    =(Max(
+                        7,
+                        Min(
+                            10,
+                            10 - ((Len(ThisItem.ItemName) - 30) / 20)
+                        )
+                    ))*(Min(App.Width/640,App.Height/1136))
+                  Text: =ThisItem.ItemName
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =(490)*((App.Width/640))
+                  Wrap: =false
+                  X: =(26)*((App.Width/640))
+                  Y: =(34)*((App.Height/1136))
+            - Body1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 1)
+                  Color: =ColorValue("#7F9292")
+                  Font: =Font.'Open Sans'
+                  FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+                  Height: =(18)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =(8)*(Min(App.Width/640,App.Height/1136))
+                  Text: |-
+                    =ThisItem.LocationCode
+                        & "  •  "
+                        & Text(
+                            ThisItem.CountDate,
+                            "[$-en-US]m/d/yyyy h:mm AM/PM"
+                        )
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =(300)*((App.Width/640))
+                  X: =(26)*((App.Width/640))
+                  Y: =(58)*((App.Height/1136))
+            - NextArrow3:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: =Self.Tooltip
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =RGBA(166, 166, 166, 1)
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(23)*((App.Height/1136))
+                  Icon: =Icon.ChevronRight
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(16)*((App.Height/1136))
+                  PaddingLeft: =(16)*((App.Width/640))
+                  PaddingRight: =(16)*((App.Width/640))
+                  PaddingTop: =(16)*((App.Height/1136))
+                  Tooltip: ="View item details"
+                  Width: =(50)*((App.Width/640))
+                  X: =((Parent.TemplateWidth/((App.Width/640))) - (Self.Width/((App.Width/640))) - 12)*((App.Width/640))
+                  Y: =(42)*((App.Height/1136))
+            - Separator3:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: =ColorValue("#252A2A")
+                  Height: =(1)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Width: =((Parent.TemplateWidth/((App.Width/640))))*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =((Parent.TemplateHeight/((App.Height/1136))) - (Self.Height/((App.Height/1136))))*((App.Height/1136))
+            - Rectangle6:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: |-
+                    =If(
+                        Value(Coalesce(ThisItem.Variance, "0")) = 0,
+                        ColorValue("#B8FF2C"),
+                        ColorValue("#FF6B3D")
+                    )
+                  Height: =(44)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Visible: =ThisItem.IsSelected
+                  Width: =(5)*((App.Width/640))
+                  X: =(12)*((App.Width/640))
+                  Y: =(18)*((App.Height/1136))
+            - lblVarianceStatus:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: |-
+                    =With(
+                        {v: Value(Coalesce(ThisItem.Variance, "0"))},
+                        If(
+                            v = 0,
+                            ColorValue("#B8FF2C"),
+                            ColorValue("#FF784A")
+                        )
+                    )
+                  Fill: |-
+                    =With(
+                        {v: Value(Coalesce(ThisItem.Variance, "0"))},
+                        If(
+                            v = 0,
+                            ColorValue("#233414"),
+                            ColorValue("#3B2117")
+                        )
+                    )
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(20)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  Size: =(8)*(Min(App.Width/640,App.Height/1136))
+                  Text: |-
+                    =With(
+                        {v: Value(Coalesce(ThisItem.Variance, "0"))},
+                        If(
+                            v = 0,
+                            "таарсан",
+                            If(
+                                v > 0,
+                                "илүү " & Text(Abs(v)),
+                                "дутуу " & Text(Abs(v))
+                            )
+                        )
+                    )
+                  Width: =(80)*((App.Width/640))
+                  X: =(155)*((App.Width/640))
+                  Y: =(13)*((App.Height/1136))
+            - Button9:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#596060")
+                  BorderStyle: =BorderStyle.Dashed
+                  BorderThickness: =(1)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#AEBABA")
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: =RGBA(0,0,0,0)
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(36)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: |-
+                    =If(
+                        varExpandedID = ThisItem.SyncKey,
+                        Set(varExpandedID, Blank()),
+                        Set(varExpandedID, ThisItem.SyncKey)
+                    )
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(8)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(9)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="+ тайлбар (сонголтоор)"
+                  Visible: =Value(Coalesce(ThisItem.Variance, "0")) <> 0
+                  Width: =(164)*((App.Width/640))
+                  X: =(26)*((App.Width/640))
+                  Y: =(76)*((App.Height/1136))
+            - Rectangle4:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: =RGBA(211, 66, 9, 1)
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(100)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =(150)*((App.Width/640))
+                  X: =(40)*((App.Width/640))
+                  Y: =(18)*((App.Height/1136))
+      - Icon14:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            AccessibleLabel: ="Үндсэн нүүр"
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(32)*((App.Height/1136))
+            Icon: =Icon.ChevronLeft
+            OnSelect: '=Navigate(нүүр)  '
+            TabIndex: =0
+            Width: =(30)*((App.Width/640))
+            X: =(31)*((App.Width/640))
+            Y: =(59)*((App.Height/1136))
+      - Button6:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(99, 139, 44, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: =RGBA(0, 0, 0, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.Lato
+            FontWeight: =FontWeight.Bold
+            Height: =(48)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorValue("#29483D")
+            OnSelect: |-
+              =Set(varHistoryArchive,!varHistoryArchive);Set(varHistoryTrash,false);Set(varExpandedID,Blank());If(varHistoryArchive,Set(varFromDate,Coalesce(Min(Filter(colLegacyInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),Counter=User().FullName),CountDate),Today()));Reset(DatePicker2_1);Notify("Энэ төхөөрөмжийн V15 сангаас таны нэртэй бүртгэлийг зөвхөн уншиж харуулна. Эзэмшигчийг email-аар баталгаажуулаагүй тул тайлан, шинэ синктэй хольж оруулаагүй.",NotificationType.Information))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#345D4F")
+            RadiusBottomLeft: =12
+            RadiusBottomRight: =12
+            RadiusTopLeft: =12
+            RadiusTopRight: =12
+            Size: =Max(11,Min(16,Self.Width/Max(10,Len(Self.Text))*1.4))
+            Text: =If(varHistoryArchive,"Өөрийн түүх","Хуучин төхөөрөмж")
+            Width: =(150)*((App.Width/640))
+            X: =(472)*((App.Width/640))
+            Y: =(51)*((App.Height/1136))
+      - DatePicker2:
+          Control: Classic/DatePicker@2.6.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(204, 204, 204, 1)
+            DefaultDate: =varToDate
+            Fill: =RGBA(0, 0, 0, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(40)*((App.Height/1136))
+            IconBackground: =RGBA(211, 66, 9, 1)
+            IconFill: =RGBA(255, 255, 255, 1)
+            OnChange: =Set(varToDate, Self.SelectedDate)
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(12)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Width: =(145)*((App.Width/640))
+            X: =(218)*((App.Width/640))
+            Y: =(91)*((App.Height/1136))
+      - DatePicker2_1:
+          Control: Classic/DatePicker@2.6.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(204, 204, 204, 1)
+            DefaultDate: =varFromDate
+            Fill: =RGBA(0, 0, 0, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(40)*((App.Height/1136))
+            IconBackground: =RGBA(211, 66, 9, 1)
+            IconFill: =RGBA(255, 255, 255, 1)
+            OnChange: =Set(varFromDate, Self.SelectedDate)
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(12)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Width: =(145)*((App.Width/640))
+            X: =(72)*((App.Width/640))
+            Y: =(89)*((App.Height/1136))
+      - Button7:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: |-
+              =If(
+                  varFilterType = "Бүгд",
+                  RGBA(20,20,15,1),      // идэвхтэй үед — хар
+                  RGBA(230,210,220,1)    // идэвхгүй үед — өмнөх цайвар өнгө
+              )
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: |-
+              =If(
+                  varFilterType = "Бүгд",
+                  RGBA(255,255,255,1),
+                  RGBA(80,20,45,1)  // одоогийн maroon өнгө
+              )
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.Lato
+            Height: =(55)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorValue("#29483D")
+            OnSelect: |-
+              =// Бүгд
+              Set(varFilterType, "Бүгд")
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#345D4F")
+            RadiusBottomLeft: =12
+            RadiusBottomRight: =12
+            RadiusTopLeft: =12
+            RadiusTopRight: =12
+            Size: =Max(11,Min(16,Self.Width/Max(10,Len(Self.Text))*1.4))
+            Text: ="Бүгд"
+            Width: =(100)*((App.Width/640))
+            X: =(40)*((App.Width/640))
+            Y: =(147)*((App.Height/1136))
+      - Button7_1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: |-
+              =If(
+                  varFilterType = "Зөрүүтэй",
+                  RGBA(20,20,15,1),      // идэвхтэй үед — хар
+                  RGBA(230,210,220,1)    // идэвхгүй үед — өмнөх цайвар өнгө
+              )
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: |-
+              =If(
+                  varFilterType = "Зөрүүтэй",
+                  RGBA(255,255,255,1),
+                  RGBA(80,20,45,1)
+              )
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(55)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: |-
+              =// Зөрүүтэй
+              Set(varFilterType, "Зөрүүтэй")
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(14)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Зөрүүтэй"
+            Width: =(108)*((App.Width/640))
+            X: =(150)*((App.Width/640))
+            Y: =(147)*((App.Height/1136))
+      - Button7_2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: |-
+              =If(
+                  varFilterType = "Таарсан",
+                  RGBA(20,20,15,1),      // идэвхтэй үед — хар
+                  RGBA(230,210,220,1)    // идэвхгүй үед — өмнөх цайвар өнгө
+              )
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: |-
+              =If(
+                  varFilterType = "Таарсан",
+                  RGBA(255,255,255,1),
+                  RGBA(80,20,45,1)
+              )
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(55)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: |-
+              =// Таарсан
+              Set(varFilterType, "Таарсан")
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(14)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Таарсан"
+            Width: =(107)*((App.Width/640))
+            X: =(266)*((App.Width/640))
+            Y: =(147)*((App.Height/1136))
+      - galHistoryFlex:
+          Control: Gallery@2.15.0
+          Variant: BrowseLayout_Flexible_SocialFeed_ver5.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Height: =Max(120,App.Height-380*App.Height/1136)
+            Items: |-
+              =If(varHistoryArchive,SortByColumns(
+                  Filter(colLegacyInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),Counter=User().FullName && 
+              
+                      DateValue(CountDate) >= DatePicker2_1.SelectedDate &&
+                      DateValue(CountDate) <= DatePicker2.SelectedDate &&
+              
+                      (
+                          varFilterType = "Бүгд" ||
+              
+                          (
+                              varFilterType = "Зөрүүтэй" &&
+                              Variance <> 0
+                          ) ||
+              
+                          (
+                              varFilterType = "Таарсан" &&
+                              Variance = 0
+                          )
+                      )
+                  ),
+                  "CountDate",
+                  SortOrder.Descending
+              ),SortByColumns(
+                  Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && Coalesce(Archived,false)=varHistoryTrash && 
+              
+                      DateValue(CountDate) >= DatePicker2_1.SelectedDate &&
+                      DateValue(CountDate) <= DatePicker2.SelectedDate &&
+              
+                      (
+                          varFilterType = "Бүгд" ||
+              
+                          (
+                              varFilterType = "Зөрүүтэй" &&
+                              Variance <> 0
+                          ) ||
+              
+                          (
+                              varFilterType = "Таарсан" &&
+                              Variance = 0
+                          )
+                      )
+                  ),
+                  "CountDate",
+                  SortOrder.Descending
+              ))
+            TemplatePadding: =8
+            TemplateSize: =180*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            Width: =App.Width-32*App.Width/640
+            X: =16*App.Width/640
+            Y: =280*App.Height/1136
+          Children:
+            - Button11:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#394141")
+                  BorderThickness: =(1)*(Min(App.Width/640,App.Height/1136))
+                  Color: =RGBA(255, 255, 255, 1)
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: =ColorValue("#151A1A")
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(145)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: =Select(Parent)
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                  Text: =""
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =((Parent.TemplateWidth/((App.Width/640))) - 52)*((App.Width/640))
+                  X: =(26)*((App.Width/640))
+                  Y: =180*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Button8_1:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#E2E6E3")
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =RGBA(255, 255, 255, 1)
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: =ColorValue("#192225")
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =180*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorValue("#233330")
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =ColorValue("#29483D")
+                  RadiusBottomLeft: =14
+                  RadiusBottomRight: =14
+                  RadiusTopLeft: =14
+                  RadiusTopRight: =14
+                  Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                  Text: =""
+                  Width: =Parent.TemplateWidth
+                  X: =(0)*((App.Width/640))
+                  Y: =(0)*((App.Height/1136))
+            - lblVarianceStatus_1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: |-
+                    =With(
+                        {v: Value(Coalesce(ThisItem.Variance, "0"))},
+                        If(
+                            v = 0,
+                            ColorValue("#B8FF2C"),
+                            ColorValue("#FF784A")
+                        )
+                    )
+                  Fill: |-
+                    =With(
+                        {v: Value(Coalesce(ThisItem.Variance, "0"))},
+                        If(
+                            v = 0,
+                            ColorValue("#233414"),
+                            ColorValue("#3B2117")
+                        )
+                    )
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  Size: =(11)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Text: |-
+                    =With(
+                        {
+                            v: Coalesce(ThisItem.Variance, 0)
+                        },
+                        If(
+                            v = 0,
+                            "таарсан",
+                            If(
+                                v > 0,
+                                "илүү " & Text(Abs(v), "#,##0"),
+                                "дутуу " & Text(Abs(v), "#,##0")
+                            )
+                        )
+                    )
+                  Width: =(110)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  X: =(14)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(82)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Button9_1:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#596060")
+                  BorderStyle: =BorderStyle.Dashed
+                  BorderThickness: =(1)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#F4F7F6")
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: =ColorValue("#263734")
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =36*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: |-
+                    =If(
+                        varExpandedID = ThisItem.SyncKey,
+
+                        Set(varExpandedID, Blank()),
+
+                        Set(varExpandedID, ThisItem.SyncKey);
+
+                        Set(
+                            varReason,
+                            If(
+                                IsBlank(ThisItem.Reason),
+                                Blank(),
+                                ThisItem.Reason
+                            )
+                        )
+                    )
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(8)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(11)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Text: ="+ тайлбар"
+                  Visible: =Value(Coalesce(ThisItem.Variance, "0")) <> 0
+                  Width: =(104)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  X: =(14)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(106)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Rectangle4_1:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: =RGBA(0,0,0,0)
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(11)*((App.Height/1136))
+                  OnSelect: |-
+                    =If(
+                        varExpandedID = ThisItem.SyncKey,
+                        255,
+                        If(
+                            !IsBlank(ThisItem.Reason) || !IsBlank(ThisItem.Comment),
+                            125,
+                            104
+                        )
+                    )
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =(1)*((App.Width/640))
+                  X: =(40)*((App.Width/640))
+                  Y: =336*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Rectangle6_1:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: |-
+                    =If(
+                        Value(Coalesce(ThisItem.Variance, "0")) = 0,
+                        ColorValue("#B8FF2C"),
+                        ColorValue("#FF6B3D")
+                    )
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(44)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Visible: =false
+                  Width: =(5)*((App.Width/640))
+                  X: =(32)*((App.Width/640))
+                  Y: =(38)*((App.Height/1136))
+            - Separator3_1:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: =ColorValue("#252A2A")
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(1)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Width: =((Parent.TemplateWidth/((App.Width/640))))*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =((Parent.TemplateHeight/((App.Height/1136))) - (Self.Height/((App.Height/1136))))*((App.Height/1136))
+            - NextArrow3_1:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: =Self.Tooltip
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =RGBA(166, 166, 166, 1)
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(23)*((App.Height/1136))
+                  Icon: =Icon.ChevronRight
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(16)*((App.Height/1136))
+                  PaddingLeft: =(16)*((App.Width/640))
+                  PaddingRight: =(16)*((App.Width/640))
+                  PaddingTop: =(16)*((App.Height/1136))
+                  Tooltip: ="View item details"
+                  Visible: =false
+                  Width: =(50)*((App.Width/640))
+                  X: =((Parent.TemplateWidth/((App.Width/640))) - (Self.Width/((App.Width/640))) - 12)*((App.Width/640))
+                  Y: =(42)*((App.Height/1136))
+            - Body1_1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#A4B3AE")
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+                  Height: =(18)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =(10)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Text: |-
+                    =ThisItem.LocationCode
+                        & "  •  "
+                        & Text(
+                            DateTimeValue(ThisItem.CountDate, "en-US"),
+                            "[$-en-US]m/d/yyyy h:mm AM/PM"
+                        )
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.TemplateWidth-28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  X: =(14)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(64)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Subtitle2_1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#F4F7F6")
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+                  Height: =(25)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =(12)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Text: =ThisItem.ItemName
+                  Tooltip: =ThisItem.ItemName
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.TemplateWidth-28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Wrap: =false
+                  X: =(14)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(38)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Title5_1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(0, 0, 0, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#F4F7F6")
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =(24)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =(15)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Text: =ThisItem.ItemNo
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.TemplateWidth-180*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  X: =(14)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(10)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Label23_1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#F4F7F6")
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =(24)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  Size: =Min(18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640)),Self.Width/Max(8,Len(Self.Text))*1.05)
+                  Text: =Text(ThisItem.CountQty,If(Mod(ThisItem.CountQty,1)=0,"#,##0","#,##0.###"))
+                  Tooltip: =Self.Text
+                  Width: =144*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Wrap: =false
+                  X: =Parent.TemplateWidth-160*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(10)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Label5_1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#879393")
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =Max(20,20*App.Height/1136)
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  Size: =Max(10,10*Min(App.Width/640,App.Height/1136))
+                  Text: =If(varHistoryArchive,"Хуучин",ThisItem.Synced,"Хадгалсан","Илгээгээгүй")
+                  Visible: =false
+                  Width: =(90)*((App.Width/640))
+                  X: =(542)*((App.Width/640))
+                  Y: =(45)*((App.Height/1136))
+            - Button12:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorFade(Self.Fill, -15%)
+                  BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Color: |-
+                    =If(
+                        varReason = Self.Text,
+                        Color.White,
+                        ColorValue("#D0D6D4")
+                    )
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: |-
+                    =If(
+                        varReason = Self.Text,
+                        ColorValue("#E14B0A"),
+                        ColorValue("#3A4240")
+                    )
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Normal
+                  Height: =(24)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: =Set(varReason, "Хэмжилтийн зөрүү")
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(9)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="Хэмжилтийн зөрүү"
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =(105)*((App.Width/640))
+                  X: =(36)*((App.Width/640))
+                  Y: =188*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Button13:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorFade(Self.Fill, -15%)
+                  BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Color: |-
+                    =If(
+                        varReason = Self.Text,
+                        Color.White,
+                        ColorValue("#D0D6D4")
+                    )
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: |-
+                    =If(
+                        varReason = Self.Text,
+                        ColorValue("#E14B0A"),
+                        ColorValue("#3A4240")
+                    )
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Normal
+                  Height: =(24)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: =Set(varReason, "Гэмтэлтэй")
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(9)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="Гэмтэлтэй"
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =(80)*((App.Width/640))
+                  X: =(146)*((App.Width/640))
+                  Y: =188*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Button14:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorFade(Self.Fill, -15%)
+                  BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Color: |-
+                    =If(
+                        varReason = Self.Text,
+                        Color.White,
+                        ColorValue("#D0D6D4")
+                    )
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: |-
+                    =If(
+                        varReason = Self.Text,
+                        ColorValue("#E14B0A"),
+                        ColorValue("#3A4240")
+                    )
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Normal
+                  Height: =(24)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: =Set(varReason, "Бичиг баримтгүй")
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(9)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="Бичиг баримтгүй"
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =(110)*((App.Width/640))
+                  X: =(231)*((App.Width/640))
+                  Y: =188*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Button15:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorFade(Self.Fill, -15%)
+                  BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Color: |-
+                    =If(
+                        varReason = Self.Text,
+                        Color.White,
+                        ColorValue("#D0D6D4")
+                    )
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: |-
+                    =If(
+                        varReason = Self.Text,
+                        ColorValue("#E14B0A"),
+                        ColorValue("#3A4240")
+                    )
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Normal
+                  Height: =(24)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: =Set(varReason, "Байршил өөр")
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(9)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="Байршил өөр"
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =(95)*((App.Width/640))
+                  X: =(36)*((App.Width/640))
+                  Y: =216*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - TextInput1:
+                Control: Classic/TextInput@2.3.2
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Default: =Coalesce(ThisItem.Comment, "")
+                  DelayOutput: =true
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(38)*((App.Height/1136))
+                  HintText: ="""Зөрүүний тайлбар..."""
+                  HoverBorderColor: =RGBA(131, 24, 75, 1)
+                  HoverFill: =RGBA(255, 211, 205, 1)
+                  RadiusBottomLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(5)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(5)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(9)*(Min(App.Width/640,App.Height/1136))
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =((Parent.TemplateWidth/((App.Width/640))) - 72)*((App.Width/640))
+                  X: =(36)*((App.Width/640))
+                  Y: =250*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Button16:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorFade(Self.Fill, -15%)
+                  BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Color: =RGBA(255, 255, 255, 1)
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  DisplayMode: =If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || varHistoryArchive || varHistoryTrash || (!varCountCacheReady && !Connection.Connected),DisplayMode.Disabled,DisplayMode.Edit)
+                  Fill: =RGBA(211, 66, 9, 1)
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(24)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: |-
+                    =If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)) || varHistoryArchive || varHistoryTrash || ThisItem.OwnerEmail<>varCountOwner,
+                     Notify("Энэ бүртгэлийг одоо өөрчлөх боломжгүй.",NotificationType.Warning),
+                     Set(varCountSaving,true);Set(varHistorySavedV22,false);Set(varHistoryCloudOnlyV22,false);Set(varHistoryActionErrorV22,"");
+                     ClearCollect(colHistoryNoteBeforeV22,Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),SyncKey=ThisItem.SyncKey && OwnerEmail=varCountOwner));
+                     With({_before:First(colHistoryNoteBeforeV22)},
+                     If(IsBlank(_before.SyncKey),Notify("Бүртгэл олдсонгүй.",NotificationType.Error),
+                     Patch(colOfflineInventory,_before,{Reason:"",Comment:"",Resolved:false},{Synced:false,Revision:Coalesce(_before.Revision,0)+1});
+                     IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+                    ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+                    SaveData(colCountDiskV21,varCountCacheKey)),
+                     Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message);false,
+                     Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varHistorySavedV22,true);true);
+                     If(!varHistorySavedV22 && Connection.Connected,
+                     IfError(If(!_before.Synced,Error({Kind:ErrorKind.Validation,Message:"Энэ мөрийн өмнөх өөрчлөлт серверт илгээгдээгүй байна. Оффлайн хадгалалтыг сэргээж дахин оролдоно уу."}),With({_id:_before.SharePointID,_title:_before.Title,_archived:"ARCHIVED:" & _before.Title},
+                     With({_server:If(_id>0,LookUp(InventoryCount,ID=_id),Coalesce(LookUp(InventoryCount,Title=_title && Counter=varCountOwner),LookUp(InventoryCount,Title=_archived && Counter=varCountOwner)))},
+                     If(IsBlank(_server.ID),Error({Kind:ErrorKind.NotFound,Message:"Серверийн эх мөр олдсонгүй. Төхөөрөмжийн хадгалалтыг сэргээж дахин оролдоно уу."}),
+                     !(_server.Counter=varCountOwner || (_server.Counter=User().FullName && _server.'Created By'.Email=varCountOwner)),
+                     Error({Kind:ErrorKind.Validation,Message:"Энэ бүртгэлийн эзэмшигч тохирохгүй байна."}),
+                     With({_ack:Patch(InventoryCount,_server,{Reason:"",Comment:"",Resolved:false})},
+                     If(IsBlank(_ack.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер өөрчлөлтийг баталгаажуулсангүй."}),
+                     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),
+                     {SharePointID:_ack.ID,Synced:true,SyncError:""});true)))))),
+                     Set(varHistoryActionErrorV22,FirstError.Message);false,
+                     Set(varHistorySavedV22,true);Set(varHistoryCloudOnlyV22,true);true));
+                     If(varHistorySavedV22,
+                     Set(varExpandedID,Blank());Set(varReason,Blank());Reset(TextInput1);
+                     Notify(If(varHistoryCloudOnlyV22,"Тайлбарыг SharePoint-д хадгаллаа. Оффлайн хуулбар шинэчлэгдээгүй.","Тайлбарыг төхөөрөмжид хадгаллаа."),If(varHistoryCloudOnlyV22,NotificationType.Warning,NotificationType.Success)),
+                     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),_before);
+                     Notify("Өөрчлөлт хадгалагдсангүй. " & Coalesce(varHistoryActionErrorV22,varCountStorageError),NotificationType.Error))));
+                     Clear(colHistoryNoteBeforeV22);
+                     Set(varCountUploadQueue,varCountCacheReady && Connection.Connected && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+                     Set(varCountSaving,false))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(8)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="Тайлбар арилгах"
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =120*App.Width/640
+                  X: =Parent.TemplateWidth-230*App.Width/640
+                  Y: =298*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Button17:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorFade(Self.Fill, -15%)
+                  BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#162000")
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  DisplayMode: =If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || varHistoryArchive || varHistoryTrash || (!varCountCacheReady && !Connection.Connected),DisplayMode.Disabled,DisplayMode.Edit)
+                  Fill: =RGBA(211, 66, 9, 1)
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(28)*((App.Height/1136))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+                  OnSelect: |-
+                    =If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)) || varHistoryArchive || varHistoryTrash || ThisItem.OwnerEmail<>varCountOwner,
+                     Notify("Энэ бүртгэлийг одоо өөрчлөх боломжгүй.",NotificationType.Warning),
+                     Set(varCountSaving,true);Set(varHistorySavedV22,false);Set(varHistoryCloudOnlyV22,false);Set(varHistoryActionErrorV22,"");
+                     ClearCollect(colHistoryNoteBeforeV22,Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),SyncKey=ThisItem.SyncKey && OwnerEmail=varCountOwner));
+                     With({_before:First(colHistoryNoteBeforeV22)},
+                     If(IsBlank(_before.SyncKey),Notify("Бүртгэл олдсонгүй.",NotificationType.Error),
+                     Patch(colOfflineInventory,_before,{Reason:Coalesce(varReason,""),Comment:TextInput1.Text,Resolved:true},{Synced:false,Revision:Coalesce(_before.Revision,0)+1});
+                     IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+                    ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+                    SaveData(colCountDiskV21,varCountCacheKey)),
+                     Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message);false,
+                     Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varHistorySavedV22,true);true);
+                     If(!varHistorySavedV22 && Connection.Connected,
+                     IfError(If(!_before.Synced,Error({Kind:ErrorKind.Validation,Message:"Энэ мөрийн өмнөх өөрчлөлт серверт илгээгдээгүй байна. Оффлайн хадгалалтыг сэргээж дахин оролдоно уу."}),With({_id:_before.SharePointID,_title:_before.Title,_archived:"ARCHIVED:" & _before.Title},
+                     With({_server:If(_id>0,LookUp(InventoryCount,ID=_id),Coalesce(LookUp(InventoryCount,Title=_title && Counter=varCountOwner),LookUp(InventoryCount,Title=_archived && Counter=varCountOwner)))},
+                     If(IsBlank(_server.ID),Error({Kind:ErrorKind.NotFound,Message:"Серверийн эх мөр олдсонгүй. Төхөөрөмжийн хадгалалтыг сэргээж дахин оролдоно уу."}),
+                     !(_server.Counter=varCountOwner || (_server.Counter=User().FullName && _server.'Created By'.Email=varCountOwner)),
+                     Error({Kind:ErrorKind.Validation,Message:"Энэ бүртгэлийн эзэмшигч тохирохгүй байна."}),
+                     With({_ack:Patch(InventoryCount,_server,{Reason:Coalesce(varReason,""),Comment:TextInput1.Text,Resolved:true})},
+                     If(IsBlank(_ack.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер өөрчлөлтийг баталгаажуулсангүй."}),
+                     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),
+                     {SharePointID:_ack.ID,Synced:true,SyncError:""});true)))))),
+                     Set(varHistoryActionErrorV22,FirstError.Message);false,
+                     Set(varHistorySavedV22,true);Set(varHistoryCloudOnlyV22,true);true));
+                     If(varHistorySavedV22,
+                     Set(varExpandedID,Blank());Set(varReason,Blank());Reset(TextInput1);
+                     Notify(If(varHistoryCloudOnlyV22,"Тайлбарыг SharePoint-д хадгаллаа. Оффлайн хуулбар шинэчлэгдээгүй.","Тайлбарыг төхөөрөмжид хадгаллаа."),If(varHistoryCloudOnlyV22,NotificationType.Warning,NotificationType.Success)),
+                     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),_before);
+                     Notify("Өөрчлөлт хадгалагдсангүй. " & Coalesce(varHistoryActionErrorV22,varCountStorageError),NotificationType.Error))));
+                     Clear(colHistoryNoteBeforeV22);
+                     Set(varCountUploadQueue,varCountCacheReady && Connection.Connected && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+                     Set(varCountSaving,false))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =Self.Color
+                  RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(9)*(Min(App.Width/640,App.Height/1136))
+                  Text: ="Болсон"
+                  Visible: =varExpandedID = ThisItem.SyncKey
+                  Width: =(75)*((App.Width/640))
+                  X: =((Parent.TemplateWidth/((App.Width/640))) - 105)*((App.Width/640))
+                  Y: =298*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - Label11:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#FF6B3D")
+                  FocusedBorderColor: =
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =(20)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  Size: =(10)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Text: |-
+                    =
+                    Coalesce(ThisItem.Reason, "") &
+                    If(
+                        !IsBlank(ThisItem.Comment),
+                        "   " & ThisItem.Comment,
+                        ""
+                    )
+                  Tooltip: =Self.Text
+                  Visible: =!IsBlank(ThisItem.Reason) || !IsBlank(ThisItem.Comment)
+                  Width: =Parent.TemplateWidth-144*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Wrap: =false
+                  X: =(130)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(84)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+            - hDeleteRowV16:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#596060")
+                  BorderStyle: =BorderStyle.Dashed
+                  BorderThickness: =(1)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#FFB8AC")
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  DisabledColor: =ColorValue("#A4B3AE")
+                  DisabledFill: =ColorValue("#242829")
+                  DisplayMode: =If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || (!varCountCacheReady && !Connection.Connected),DisplayMode.Disabled,DisplayMode.Edit)
+                  Fill: =ColorValue("#392427")
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =36*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =RGBA(255, 255, 255, 1)
+                  HoverFill: =ColorValue("#553033")
+                  OnSelect: =ClearCollect(colHistoryDeleteV16,ThisItem);Set(varHistoryDeleteMode,If(varHistoryTrash,"restore","delete"));Set(varHistoryDeleteConfirm,true);SetFocus(hDeleteCancelV16)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =Self.Fill
+                  PressedFill: =ColorValue("#6C343A")
+                  RadiusBottomLeft: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(8)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(8)*(Min(App.Width/640,App.Height/1136))
+                  Size: =(11)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Text: =If(varHistoryTrash,"Сэргээх","Хогийн сав")
+                  Visible: =!varHistoryArchive
+                  Width: =144*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  X: =Parent.TemplateWidth-160*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+                  Y: =(106)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),App.Width/640))
+      - Icon2:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            AccessibleLabel: ="Тооллогын түүхийг CSV хавсралттай өөрийн мэйлд илгээх"
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderStyle: =BorderStyle.None
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#EF601B")
+            Fill: =RGBA(0, 0, 0, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =40
+            Icon: =Icon.Mail
+            OnSelect: |-
+              =If(varHistoryMailSendingV18,Notify("Тайлан илгээж байна…",NotificationType.Information),!Connection.Connected,Notify("Интернет холболт шаардлагатай.",NotificationType.Warning),DatePicker2_1.SelectedDate>DatePicker2.SelectedDate,Notify("Огнооны дарааллыг шалгана уу.",NotificationType.Warning),With({_rows:Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Coalesce(Archived,false) && CountDate>=DatePicker2_1.SelectedDate && CountDate<DateAdd(DatePicker2.SelectedDate,1,TimeUnit.Days) && Switch(varFilterType,"Зөрүүтэй",CountQty<>OpeningBalance,"Таарсан",CountQty=OpeningBalance,true))},If(IsEmpty(_rows),Notify("Илгээх мөр алга.",NotificationType.Information),Set(varHistoryMailSendingV18,true);IfError(Set(varMailResult,PA_ExportInventoryCSV.Run(JSON(ForAll(_rows As r,{'Огноо':If(IsBlank(r.CountDate),"",Text(r.CountDate,"yyyy-mm-dd hh:mm:ss")),'Барааны код':If(IsMatch(r.ItemNo,"[0-9]+"),"=" & Char(34) & r.ItemNo & Char(34),With({s:Coalesce(r.ItemNo,"")},If(Left(s,1) in ["=","+","-","@"],"'" & s,s))),'Барааны нэр':With({s:Coalesce(r.ItemName,"")},If(Left(s,1) in ["=","+","-","@"],"'" & s,s)),'Агуулах':With({s:Coalesce(r.LocationCode,"")},If(Left(s,1) in ["=","+","-","@"],"'" & s,s)),'Үлдэгдэл':r.OpeningBalance,'Тоолсон':r.CountQty,'Зөрүү':If(IsBlank(r.CountQty),Blank(),r.CountQty-r.OpeningBalance),'Тоологч':With({s:Coalesce(r.Counter,"")},If(Left(s,1) in ["=","+","-","@"],"'" & s,s)),'Шалтгаан':With({s:Coalesce(r.Reason,"")},If(Left(s,1) in ["=","+","-","@"],"'" & s,s)),'Тайлбар':With({s:Coalesce(r.Comment,"")},If(Left(s,1) in ["=","+","-","@"],"'" & s,s))}),JSONFormat.Compact),User().Email,"[CSV2] " & "Тооллогын түүх " & Text(DatePicker2_1.SelectedDate,"yyyy-mm-dd") & " - " & Text(DatePicker2.SelectedDate,"yyyy-mm-dd"),"<h2>" & Substitute(Substitute(Substitute(Coalesce("Тооллогын түүх",""),"&","&amp;"),"<","&lt;"),">","&gt;") & "</h2><p>Хэрэглэгч: " & Substitute(Substitute(Substitute(Coalesce(User().FullName,""),"&","&amp;"),"<","&lt;"),">","&gt;") & " · " & Substitute(Substitute(Substitute(Coalesce(User().Email,""),"&","&amp;"),"<","&lt;"),">","&gt;") & "</p><p>Хугацаа: " & Text(DatePicker2_1.SelectedDate,"yyyy-mm-dd") & " — " & Text(DatePicker2.SelectedDate,"yyyy-mm-dd") & "</p><p>Хуудас: " & Substitute(Substitute(Substitute(Coalesce("Түүх · сонгосон хугацааны бүртгэлүүд",""),"&","&amp;"),"<","&lt;"),">","&gt;") & "</p><p>Шүүлт: " & Substitute(Substitute(Substitute(Coalesce(varFilterType,""),"&","&amp;"),"<","&lt;"),">","&gt;") & "</p><p>Нийт мөр: " & CountRows(_rows) & "</p><p>Таарсан: " & CountRows(Filter(_rows,!IsBlank(CountQty) && CountQty=OpeningBalance)) & " · Дутуу: " & CountRows(Filter(_rows,!IsBlank(CountQty) && CountQty<OpeningBalance)) & " · Илүү: " & CountRows(Filter(_rows,!IsBlank(CountQty) && CountQty>OpeningBalance)) & "</p><p>Агуулахын тоо: " & CountRows(Distinct(_rows,LocationCode)) & "</p><p>Дэлгэрэнгүй тайланг хавсралтаас үзнэ үү.</p>")),Notify("Илгээхэд алдаа: " & FirstError.Message,NotificationType.Error),Notify("Түүхийн хураангуй болон CSV хавсралтыг өөрийн мэйлд илгээлээ.",NotificationType.Success));Set(varHistoryMailSendingV18,false))))
+            Tooltip: ="Түүхийн хураангуй + CSV хавсралт"
+            Width: =40
+            X: =App.Width-64
+            Y: =32*App.Height/1136
+      - Icon3:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            AccessibleLabel: ="Тооллого эхлэх"
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            Fill: =RGBA(0, 0, 0, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(64)*((App.Height/1136))
+            Icon: =Icon.BackArrow
+            OnSelect: =Navigate('scrWarehouses')
+            TabIndex: =0
+            Width: =(64)*((App.Width/640))
+            X: =(112)*((App.Width/640))
+            Y: =(1058)*((App.Height/1136))
+      - Label25:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(64)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Тооллого буцах"
+            Width: =(436)*((App.Width/640))
+            X: =(204)*((App.Width/640))
+            Y: =(1058)*((App.Height/1136))
+      - hTrashV16:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(99, 139, 44, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: =RGBA(0, 0, 0, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.Lato
+            FontWeight: =FontWeight.Bold
+            Height: =40*App.Height/1136
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorValue("#29483D")
+            OnSelect: =Set(varHistoryTrash,!varHistoryTrash);Set(varHistoryArchive,false);Set(varExpandedID,Blank())
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#345D4F")
+            RadiusBottomLeft: =12
+            RadiusBottomRight: =12
+            RadiusTopLeft: =12
+            RadiusTopRight: =12
+            Size: =Max(11,Min(16,Self.Width/Max(10,Len(Self.Text))*1.4))
+            Text: =If(varHistoryTrash,"← Өөрийн түүх","Хогийн сав")
+            Width: =170*App.Width/640
+            X: =16*App.Width/640
+            Y: =205*App.Height/1136
+      - hCleanV16:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(99, 139, 44, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(varCountSyncBusy || varCountSaving || varHistoryLoading || (!varCountCacheReady && !Connection.Connected),DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =RGBA(0, 0, 0, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.Lato
+            FontWeight: =FontWeight.Bold
+            Height: =40*App.Height/1136
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorValue("#29483D")
+            OnSelect: |-
+              =ClearCollect(colHistoryDeleteV16,If(varHistoryArchive,SortByColumns(
+                  Filter(colLegacyInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),Counter=User().FullName && 
+              
+                      DateValue(CountDate) >= DatePicker2_1.SelectedDate &&
+                      DateValue(CountDate) <= DatePicker2.SelectedDate &&
+              
+                      (
+                          varFilterType = "Бүгд" ||
+              
+                          (
+                              varFilterType = "Зөрүүтэй" &&
+                              Variance <> 0
+                          ) ||
+              
+                          (
+                              varFilterType = "Таарсан" &&
+                              Variance = 0
+                          )
+                      )
+                  ),
+                  "CountDate",
+                  SortOrder.Descending
+              ),SortByColumns(
+                  Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && Coalesce(Archived,false)=varHistoryTrash && 
+              
+                      DateValue(CountDate) >= DatePicker2_1.SelectedDate &&
+                      DateValue(CountDate) <= DatePicker2.SelectedDate &&
+              
+                      (
+                          varFilterType = "Бүгд" ||
+              
+                          (
+                              varFilterType = "Зөрүүтэй" &&
+                              Variance <> 0
+                          ) ||
+              
+                          (
+                              varFilterType = "Таарсан" &&
+                              Variance = 0
+                          )
+                      )
+                  ),
+                  "CountDate",
+                  SortOrder.Descending
+              )));Set(varHistoryDeleteMode,If(varHistoryTrash,"restore","delete"));Set(varHistoryDeleteConfirm,!IsEmpty(colHistoryDeleteV16))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#345D4F")
+            RadiusBottomLeft: =12
+            RadiusBottomRight: =12
+            RadiusTopLeft: =12
+            RadiusTopRight: =12
+            Size: =Max(11,Min(16,Self.Width/Max(10,Len(Self.Text))*1.4))
+            Text: =If(varHistoryTrash,"Шүүсэн мөрүүдийг сэргээх","Шүүсэн мөрүүдийг цэвэрлэх")
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (!varHistoryArchive)
+            Width: =420*App.Width/640
+            X: =200*App.Width/640
+            Y: =205*App.Height/1136
+      - hHistoryStateV16:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Color: =ColorValue("#86968F")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =28*App.Height/1136
+            PaddingBottom: =(0)*((App.Height/1136))
+            PaddingLeft: =(0)*((Min(App.Width,960)/640))
+            PaddingRight: =(0)*((Min(App.Width,960)/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            Size: =Max(10,10*App.Width/640)
+            Text: =If(!varCountCacheReady,"Төхөөрөмжийн хадгалалт бэлэн биш · " & varCountStorageError,If(varHistoryArchive,"Хуучин локал сан · зөвхөн унших",varHistoryLoading,"Өөрийн түүхийг татаж байна…",varHistoryCloudLimit,"Онлайн түүх 5,000 мөрийн хязгаар хүрсэн; зарим мөр дутуу байж болно",varHistoryCloudError,"Онлайн түүх татагдсангүй · локал түүх хадгалагдсан",varHistoryCacheError,"Түүх онлайн уншигдсан · төхөөрөмжид хадгалах боломжгүй",varHistoryTrash,"Хогийн сав дахь мөрийг буцааж сэргээж болно","Түүх синк хийсний дараа ч төхөөрөмж дээр үлдэнэ"))
+            Tooltip: =If(!varCountCacheReady,"Оффлайн хадгалалт бэлэн биш. Интернеттэй үед сервер баталгаажуулсан өөрчлөлт хийгдэнэ. " & varCountStorageError,"")
+            Width: =App.Width-32
+            X: =16*App.Width/640
+            Y: =249*App.Height/1136
+      - hDeleteShadeV16:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(8,24,17,0.48)
+            Height: =App.Height
+            RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varHistoryDeleteConfirm)
+            Width: =App.Width
+      - hDeleteModalV16:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =(1)*(Min(App.Width/640,App.Height/1136))
+            Fill: =ColorValue("#FFFFFF")
+            Height: =Min(App.Height*0.9,440*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136))))
+            RadiusBottomLeft: =(22)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(22)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(22)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(22)*(Min(App.Width/640,App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varHistoryDeleteConfirm)
+            Width: =Min(App.Width*0.92,680*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136))))
+            X: =(App.Width-Self.Width)/2
+            Y: =(App.Height-Self.Height)/2
+          Children:
+            - hDeleteTitleV16:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#153F30")
+                  Fill: =RGBA(0,0,0,0)
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  FontWeight: =FontWeight.Semibold
+                  Height: =Parent.Height*0.14
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =Min(Parent.Width/24,Parent.Height/17)
+                  Text: =If(varHistoryDeleteMode="restore","Тооллого сэргээх","Тооллого цэвэрлэх")
+                  Width: =Parent.Width*0.88
+                  X: =Parent.Width*0.06
+                  Y: =Parent.Height*0.05
+            - hDeleteInfoV16:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#86968F")
+                  Fill: =RGBA(0,0,0,0)
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =Parent.Height*0.46
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =Min(Parent.Width/32,Parent.Height/23)
+                  Text: =Text(CountRows(colHistoryDeleteV16),"#,##0") & " мөр" & Char(10) & If(varHistoryDeleteMode="restore","Эдгээр мөр өөрийн түүх, тайланд дахин харагдана.","Эдгээр мөр Хогийн сав руу шилжинэ. Тайлангийн дүнд орохгүй. Дараа нь сэргээж болно.") & Char(10) & "Зөвхөн таны сонгосон мөрүүдэд үйлчилнэ. BC баримтыг өөрчлөхгүй."
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =Parent.Width*0.88
+                  X: =Parent.Width*0.06
+                  Y: =Parent.Height*0.23
+            - hDeleteCancelV16:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#DFE4E1")
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#FFFFFF")
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  Fill: =ColorValue("#153F30")
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =Parent.Height*0.15
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =ColorValue("#FFFFFF")
+                  HoverFill: =ColorValue("#153F30")
+                  OnSelect: =Set(varHistoryDeleteConfirm,false)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =ColorValue("#FFFFFF")
+                  PressedFill: =ColorValue("#2B5343")
+                  RadiusBottomLeft: =(14)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(14)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(14)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(14)*(Min(App.Width/640,App.Height/1136))
+                  Size: =Min(Parent.Width/34,Parent.Height/25)
+                  Text: ="Болих"
+                  Width: =Parent.Width*0.29
+                  X: =Parent.Width*0.06
+                  Y: =Parent.Height*0.78
+            - hDeleteConfirmV16:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  BorderColor: =ColorValue("#DFE4E1")
+                  BorderThickness: =(0)*(Min(Min(App.Width,960)/640,App.Height/1136))
+                  Color: =ColorValue("#B5E755")
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  DisplayMode: =If(varCountSyncBusy || varCountSaving || varHistoryLoading,DisplayMode.Disabled,DisplayMode.Edit)
+                  Fill: =ColorValue("#2B5343")
+                  FocusedBorderThickness: =(4)*(Min(Min(App.Width,960)/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =Parent.Height*0.15
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =ColorValue("#B5E755")
+                  HoverFill: =ColorValue("#2B5343")
+                  OnSelect: |-
+                    =If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)),Notify("Хадгалалт дуусахыг хүлээнэ үү.",NotificationType.Information),
+                     Set(varCountSaving,true);Set(varHistoryDiskSavedV22,false);Set(varHistoryActionErrorV22,"");
+                     ClearCollect(colHistoryActionV22,ForAll(FirstN(Filter(colHistoryDeleteV16,OwnerEmail=varCountOwner),25) As selected,
+                     LookUp(colOfflineInventory,SyncKey=selected.SyncKey && OwnerEmail=varCountOwner)));
+                     Clear(colHistoryActionResultV22);
+                     ForAll(Filter(colHistoryActionV22,!IsBlank(SyncKey)) As old,
+                     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=old.SyncKey && OwnerEmail=varCountOwner),
+                     {Archived:varHistoryDeleteMode="delete",Revision:Coalesce(old.Revision,0)+1,Synced:false,SyncError:""}));
+                     IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+                    ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+                    SaveData(colCountDiskV21,varCountCacheKey)),
+                     Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message);false,
+                     Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varHistoryDiskSavedV22,true);true);
+                     If(varHistoryDiskSavedV22,
+                     ForAll(Filter(colHistoryActionV22,!IsBlank(SyncKey)) As old,Collect(colHistoryActionResultV22,{SyncKey:old.SyncKey,Success:true,Message:""})),
+                     ForAll(Filter(colHistoryActionV22,!IsBlank(SyncKey)) As _before,
+                     IfError(If(!Connection.Connected,Error({Kind:ErrorKind.Network,Message:"Интернет холболт алга байна."}),If(!_before.Synced,Error({Kind:ErrorKind.Validation,Message:"Энэ мөрийн өмнөх өөрчлөлт серверт илгээгдээгүй байна. Оффлайн хадгалалтыг сэргээж дахин оролдоно уу."}),With({_id:_before.SharePointID,_title:_before.Title,_archived:"ARCHIVED:" & _before.Title},
+                     With({_server:If(_id>0,LookUp(InventoryCount,ID=_id),Coalesce(LookUp(InventoryCount,Title=_title && Counter=varCountOwner),LookUp(InventoryCount,Title=_archived && Counter=varCountOwner)))},
+                     If(IsBlank(_server.ID),Error({Kind:ErrorKind.NotFound,Message:"Серверийн эх мөр олдсонгүй. Төхөөрөмжийн хадгалалтыг сэргээж дахин оролдоно уу."}),
+                     !(_server.Counter=varCountOwner || (_server.Counter=User().FullName && _server.'Created By'.Email=varCountOwner)),
+                     Error({Kind:ErrorKind.Validation,Message:"Энэ бүртгэлийн эзэмшигч тохирохгүй байна."}),
+                     With({_ack:Patch(InventoryCount,_server,{Title:If(varHistoryDeleteMode="delete","ARCHIVED:" & _before.Title,_before.Title)})},
+                     If(IsBlank(_ack.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер өөрчлөлтийг баталгаажуулсангүй."}),
+                     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),
+                     {SharePointID:_ack.ID,Synced:true,SyncError:""});true))))))),
+                     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),_before);
+                     Collect(colHistoryActionResultV22,{SyncKey:_before.SyncKey,Success:false,Message:FirstError.Message});false,
+                     Collect(colHistoryActionResultV22,{SyncKey:_before.SyncKey,Success:true,Message:""});true)));
+                     RemoveIf(colHistoryDeleteV16,SyncKey in Filter(colHistoryActionResultV22,Success).SyncKey);
+                     Set(varExpandedID,Blank());Set(varHistoryDeleteConfirm,!IsEmpty(colHistoryDeleteV16));
+                     Notify("Амжилттай: " & CountRows(Filter(colHistoryActionResultV22,Success)) & " · Үлдсэн: " & CountRows(colHistoryDeleteV16) &
+                     If(varHistoryDiskSavedV22," · төхөөрөмжид хадгалсан"," · SharePoint баталгаажуулсан, оффлайн хуулбар шинэчлэгдээгүй") &
+                     If(!IsEmpty(Filter(colHistoryActionResultV22,!Success)),". " & First(Filter(colHistoryActionResultV22,!Success)).Message,""),
+                     If(!IsEmpty(Filter(colHistoryActionResultV22,!Success)),NotificationType.Error,If(varHistoryDiskSavedV22,NotificationType.Success,NotificationType.Warning)));
+                     Clear(colHistoryActionV22);
+                     Set(varCountUploadQueue,varCountCacheReady && Connection.Connected && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+                     Set(varCountSaving,false))
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((Min(App.Width,960)/640))
+                  PaddingRight: =(5)*((Min(App.Width,960)/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =ColorValue("#FFFFFF")
+                  PressedFill: =ColorValue("#2B5343")
+                  RadiusBottomLeft: =(14)*(Min(Min(App.Width,960)/640,App.Height/1136))
+                  RadiusBottomRight: =(14)*(Min(Min(App.Width,960)/640,App.Height/1136))
+                  RadiusTopLeft: =(14)*(Min(Min(App.Width,960)/640,App.Height/1136))
+                  RadiusTopRight: =(14)*(Min(Min(App.Width,960)/640,App.Height/1136))
+                  Size: =Min(Parent.Width/34,Parent.Height/25)
+                  Text: =If(CountRows(colHistoryDeleteV16)>25,"Дараагийн 25 мөр",If(varHistoryDeleteMode="restore","Сэргээх","Хогийн сав руу"))
+                  Width: =Parent.Width*0.56
+                  X: =Parent.Width*0.38
+                  Y: =Parent.Height*0.78
+      - uploadQueueV16_12:
+          Control: Timer@2.1.0
+          Properties:
+            OnTimerStart: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+              )
+            AutoPause: =false
+            AutoStart: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),true
+              )
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            Duration: =5000
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(4)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =1
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnTimerEnd: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),// V27 durable upload: CountKeyV27 is unique in SharePoint.
+              If(Connection.Connected && varCountCacheReady &&
+               !Coalesce(varCountSyncBusy,false) && !Coalesce(varCountSaving,false) &&
+               !Coalesce(varHistoryLoading,false) && varCountOwner=Lower(Trim(User().Email)) &&
+               !IsBlank(varCountOwner) && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) &&
+               (IsBlank(varCountRetryAtV27) || Now()>=varCountRetryAtV27),
+              Set(varCountSyncBusy,true);
+              IfError(
+              ClearCollect(colToSync,FirstN(SortByColumns(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced),"SyncError",SortOrder.Ascending),25));
+              If(!IsEmpty(colToSync),
+              ForAll(colToSync As rec,
+                  IfError(
+                      With({_existing:With({_rowID:rec.SharePointID,_rowTitle:rec.Title,_archivedTitle:"ARCHIVED:" & rec.Title,_oldCounter:User().FullName},If(_rowID>0,With({_byID:LookUp(InventoryCount,ID=_rowID)},If(_byID.Counter=varCountOwner || (_byID.Counter=_oldCounter && _byID.'Created By'.Email=varCountOwner),_byID,Blank())),Coalesce(LookUp(InventoryCount,CountKeyV27=rec.SyncKey && Counter=varCountOwner),LookUp(InventoryCount,Title=_rowTitle && Counter=varCountOwner),LookUp(InventoryCount,Title=_archivedTitle && Counter=varCountOwner))))},
+                          With({_saved:Patch(InventoryCount,If(IsBlank(_existing.ID),Defaults(InventoryCount),_existing),{
+                              CountKeyV27:rec.SyncKey,Title:If(Coalesce(rec.Archived,false),"ARCHIVED:" & rec.Title,rec.Title),ItemNo:rec.ItemNo,ItemName:rec.ItemName,LocationCode:rec.LocationCode,
+                              OpeningBalance:rec.OpeningBalance,CountQty:rec.CountQty,Variance:rec.CountQty-rec.OpeningBalance,
+                              CountDate:rec.CountDate,Counter:rec.OwnerEmail,Reason:rec.Reason,Comment:rec.Comment,Resolved:rec.Resolved})},
+                              If(IsBlank(_saved.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер мөрийн ID баталгаажуулсангүй."}),
+                                  Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+                                      {SharePointID:_saved.ID,SyncError:"",Synced:LookUp(colOfflineInventory,SyncKey=rec.SyncKey,Revision)=rec.Revision}));
+                              true
+                          )
+                      ),
+                      Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+                          {Synced:false,SyncError:FirstError.Message});false
+                  )
+              );
+              );
+              IfError(
+               If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Эх хадгалалтыг аюулгүй уншаагүй байна."}),
+               ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+               SaveData(colCountDiskV21,varCountCacheKey)),
+               Set(varCountStorageError,FirstError.Message),Set(varCountStorageError,""));
+              Set(varCountRemainingV27,CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+              If(!IsEmpty(Filter(colToSync As q,!IsBlank(LookUp(colOfflineInventory,SyncKey=q.SyncKey,SyncError)))),
+               Set(varCountRetryCountV27,Min(5,Coalesce(varCountRetryCountV27,0)+1));
+               Set(varCountRetryAtV27,DateAdd(Now(),Min(300,15*Power(2,varCountRetryCountV27-1)),TimeUnit.Seconds)),
+               Set(varCountRetryCountV27,0);Set(varCountRetryAtV27,Now()));
+              Set(varCountUploadQueue,varCountRemainingV27>0),
+               Set(varCountStorageError,FirstError.Message);
+               Set(varCountRetryAtV27,DateAdd(Now(),60,TimeUnit.Seconds)));
+              Set(varCountSyncBusy,false))
+              
+              )
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            Repeat: =true
+            Reset: =!varRptPdfPending
+            Size: =Max(12,(13)*(Min(Min(App.Width,960)/640,App.Height/1136)))
+            Start: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Connection.Connected && varCountCacheReady
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =1
+      - pgDenied550:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =Max(12,(Parent.Width-320)/2)
+            Y: |-
+              =Max(12,(Parent.Height-76)/2)
+            Width: |-
+              =Min(320,Parent.Width-24)
+            Height: |-
+              =76
+            Size: |-
+              =14
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Энэ хуудасны эрх холбогдоогүй · Профайл"
+            Visible: |-
+              =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)

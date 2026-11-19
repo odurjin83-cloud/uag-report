@@ -1,0 +1,1050 @@
+##### App App.OnStart vs mine
+--- 
++++ 
+@@ -247 +247 @@
+- // v3.6.8: disk already holds exactly what was loaded, so skip the rewrite only when a C21 file was loaded and no V19 rows were merged (first launch still writes and tests the disk).
++ // v3.6.8: disk already holds exactly what was loaded, so rewrite it only when V19 rows were merged in.
+@@ -467,6 +466,0 @@
+-IfError(LoadData(colDStockBaseV17,"DashboardStockV17",true),Clear(colDStockBaseV17));
+-
+-Set(varDStockReadyV17,!IsEmpty(colDStockBaseV17));
+-
+-Set(varDValue,If(IsEmpty(colDStockBaseV17),Blank(),Sum(colDStockBaseV17,Qty*Cost)));
+-
+@@ -476 +470 @@
+-If(!Connection.Connected && !varDStockReadyV17,If(!Coalesce(varDStockBuildingV17,false),
++If(!Coalesce(varDStockBuildingV17,false),
+@@ -479,14 +473,50 @@
+-IfError(
+-ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,JoinCost:i.unitCost,JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+-
+-Collect(colDJoinV17,ForAll(Filter(colOfflineStock,!IsBlank(itemNo) && !IsBlank(locationCode)) As s,{JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+-
+-ClearCollect(colDStockBaseV17,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+-With({_master:LookUp(g.JoinRows,JoinKind=0)},
+-{StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+-{itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+-
+-Set(varDValue,If(IsEmpty(colDStockBaseV17),Blank(),Sum(colDStockBaseV17,Qty*Cost)));
+-
+-Set(varDValuationMissing,CountRows(Filter(colDStockBaseV17,IsBlank(Cost))));
+-
++With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:false},
++    IfError(
++        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);
++Set(varDStockReadyV17,false);
++
++Set(varDStockBuiltAtV17,Blank());
++Clear(colDStockBaseV17);
++
++If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));
++Clear(colDDiskV369);
++
++    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
++
++    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
++        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
++            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
++
++            Set(varDStockBuiltAtV17,_head.FetchedV369);
++Set(varDStockReadyV17,true)));
++
++    Clear(colDDiskV369)));
++
++        If(!IsBlank(_scope) && (_pair || (!Connection.Connected && !Coalesce(varDStockReadyV17,false) &&
++            (IsEmpty(colDStockBaseV17) || false))),
++            ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,
++                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++
++            Collect(colDJoinV17,ForAll(Filter(colOfflineStock,!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
++                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++
++            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
++                With({_master:LookUp(g.JoinRows,JoinKind=0)},
++                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
++                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
++                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++
++            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
++                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});
++Clear(colDLegacyV369);
++
++                IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
++
++                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
++                    Patch(r,{Cost:Blank()})));
++Clear(colDLegacyV369));
++
++            ClearCollect(colDStockBaseV17,colDCandidateV369);
++
++            If(_pair,Set(varDStockBuiltAtV17,Now());
+@@ -494,4 +524,15 @@
+-Set(varDStockBuiltAtV17,Now());
+-
+-IfError(SaveData(colDStockBaseV17,"DashboardStockV17"),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+-
++
++If(!IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
++
++    Collect(colDDiskV369,colDStockBaseV17);
++
++    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++
++    Clear(colDDiskV369))));
++
++        true,
++        Set(varDStockCacheErrorV17,true);
++false);
++
++    Clear(colDCandidateV369);
+@@ -499,6 +540,7 @@
+-true,
+-Set(varDStockReadyV17,false);
+-Clear(colDJoinV17);
+-false);
+-
+-Set(varDStockBuildingV17,false)));
++
++    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
++
++    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
++        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
++
++Set(varDStockBuildingV17,false));
+@@ -526 +567,0 @@
+-Clear(colAutoItemsV16);
+@@ -543 +583,0 @@
+-Clear(colAutoStockV16);
+@@ -613,2 +653 @@
+-// v3.6.8: rebuild dashboard stock only if items or stock were refreshed in this run, or no dashboard cache exists.
+-If(!Coalesce(varDStockBuildingV17,false) && (!Coalesce(varDStockReadyV17,false) || !Coalesce(varAutoItemsError,true) || !Coalesce(varAutoStockError,true)),
++If(!Coalesce(varDStockBuildingV17,false),
+@@ -617,14 +656,50 @@
+-IfError(
+-ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,JoinCost:i.unitCost,JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+-
+-Collect(colDJoinV17,ForAll(Filter(colOfflineStock,!IsBlank(itemNo) && !IsBlank(locationCode)) As s,{JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+-
+-ClearCollect(colDStockBaseV17,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+-With({_master:LookUp(g.JoinRows,JoinKind=0)},
+-{StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+-{itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+-
+-Set(varDValue,If(IsEmpty(colDStockBaseV17),Blank(),Sum(colDStockBaseV17,Qty*Cost)));
+-
+-Set(varDValuationMissing,CountRows(Filter(colDStockBaseV17,IsBlank(Cost))));
+-
++With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",With({_grant:If(Lower(pgAccess.UserEmail)=Lower(User().Email),pgAccess,If(Connection.Connected,IfError(LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email)),Blank()),Blank()))},If(_grant.Active && (IsBlank(_grant.ExpiresAt) || _grant.ExpiresAt>Now()),Upper(Coalesce(_grant.LocationCode,"")),""))),_pair:!Coal
++    IfError(
++        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);
++Set(varDStockReadyV17,false);
++
++Set(varDStockBuiltAtV17,Blank());
++Clear(colDStockBaseV17);
++
++If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));
++Clear(colDDiskV369);
++
++    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
++
++    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
++        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
++            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
++
++            Set(varDStockBuiltAtV17,_head.FetchedV369);
++Set(varDStockReadyV17,true)));
++
++    Clear(colDDiskV369)));
++
++        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
++            (IsEmpty(colDStockBaseV17) || !Coalesce(varAutoStockError,true)))),
++            ClearCollect(colDJoinV17,ForAll(If(_pair,colAutoItemsV16,colOfflineItems) As i,{JoinNo:i.number,JoinKind:0,
++                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++
++            Collect(colDJoinV17,ForAll(Filter(If(_pair,colAutoStockV16,colOfflineStock),!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
++                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++
++            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
++                With({_master:LookUp(g.JoinRows,JoinKind=0)},
++                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
++                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
++                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++
++            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
++                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});
++Clear(colDLegacyV369);
++
++                IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
++
++                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
++                    Patch(r,{Cost:Blank()})));
++Clear(colDLegacyV369));
++
++            ClearCollect(colDStockBaseV17,colDCandidateV369);
++
++            If(_pair,Set(varDStockBuiltAtV17,Now());
+@@ -632,4 +707,15 @@
+-Set(varDStockBuiltAtV17,Now());
+-
+-IfError(SaveData(colDStockBaseV17,"DashboardStockV17"),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+-
++
++If(!IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
++
++    Collect(colDDiskV369,colDStockBaseV17);
++
++    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++
++    Clear(colDDiskV369))));
++
++        true,
++        Set(varDStockCacheErrorV17,true);
++false);
++
++    Clear(colDCandidateV369);
+@@ -637,4 +723,5 @@
+-true,
+-Set(varDStockReadyV17,false);
+-Clear(colDJoinV17);
+-false);
++
++    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
++
++    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
++        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
+@@ -642,0 +730,2 @@
++Clear(colAutoItemsV16);
++Clear(colAutoStockV16);
+##### scrWarehouses Button1_2.OnSelect vs mine
+--- 
++++ 
+@@ -1,13 +1 @@
+-=If(((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(varLocationCode) & "|") in pgAccess.LocationCode),If(!Coalesce(varCountLoadDoneV21,false),
+- Notify("Тооллогын өгөгдөл ачаалж байна. Түр хүлээгээд дахин хадгална уу.",NotificationType.Warning),
+-Coalesce(varHistoryLoading,false) || Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false),
+- Notify("Одоогийн хадгалалт дуусахыг хүлээнэ үү.",NotificationType.Information),
+-!Coalesce(varCountDiskSafeV21,false) && !Connection.Connected,
+- Notify("Офлайн хадгалалтын сан бэлэн биш байна. Интернэтэд холбогдож өгөгдлөө сэргээсний дараа дахин хадгална уу.",NotificationType.Error,10000),
+-IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)),Notify("Microsoft 365 хэрэглэгчийг шалгана уу.",NotificationType.Error),
+-IsBlank(varItem.number) || IsBlank(varLocationCode) || Trim(txtSearch_4.Text)<>varItem.number,Notify("Бараа болон тухайн агуулахыг сонгоно уу. Хайлтад бичсэн бараагаа баталгаажуулна уу.",NotificationType.Warning),
+-IsBlank(txtCountQty_2.Text) || !IsNumeric(txtCountQty_2.Text) || IfError(Value(txtCountQty_2.Text)<0,true),Notify("0 буюу түүнээс их тоо оруулна уу.",NotificationType.Warning),
+-IsEmpty(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && locationCode=varLocationCode)),Notify("Энэ барааны агуулахын үлдэгдэл алга байна.",NotificationType.Warning),
+-IsBlank(varOpeningBalance),Notify("Эхний үлдэгдэл тодорхойгүй байна. Агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+-!(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance),Notify("Сонгосон бараа, агуулах, эхний үлдэгдэл хоорондоо тохирохгүй байна. Бараа болон агуулахаа дахин сонгоно уу.",NotificationType.Warning),
+-Set(varCountSaving,true);
++=If(!IsBlank(varCountReceiptV369.SyncKey),If(!((Lower(User().Email)="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varCountReceiptV369.OwnerEmail=Lower(Trim(User().Email)) && (!IsBlank(varCountReceiptV369.LocationCode) 
+@@ -15,0 +4 @@
++With({p:varCountReceiptV369},Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
+@@ -17,3 +6 @@
+-With({_sig:varItem.number & "|" & Upper(varLocationCode) & "|" & Text(Value(txtCountQty_2.Text))},If(IsBlank(varCountAttemptKeyV21) || Coalesce(varCountAttemptSigV368,"")<>_sig,Set(varCountAttemptKeyV21,Text(GUID()));
+-Set(varCountAttemptSigV368,_sig)));
+-Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
++Set(varCountCloudTitleV369,varCountReceiptV369.Title);
+@@ -21,4 +8,26 @@
+-With({_key:varCountAttemptKeyV21,_opening:varOpeningBalance,_qty:Value(txtCountQty_2.Text)},
+- Collect(colOfflineInventory,{SyncKey:_key,CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,
+- LocationCode:varLocationCode,OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:Now(),Counter:User().FullName,
+- OwnerEmail:varCountOwner,Revision:1,Archived:false,SharePointID:0,SyncError:"",Reason:If(App.Width<First(App.SizeBreakpoints).Value && phoneReasonItem=varItem.number,Coalesce(phoneCountReason,""),""),Comment:If(App.Width<First(App.SizeBreakpoints).Value,phoneCountNote.Text,""),Resolved:false,Synced:false});
++With({p:varCountReceiptV369},
++ IfError(
++  With({old:Coalesce(
++    LookUp(InventoryCount,CountKeyV27=varCountCloudKeyV369),
++    LookUp(InventoryCount,Title=varCountCloudTitleV369))},
++   With({saved:If(IsBlank(old.ID),
++      Patch(InventoryCount,Defaults(InventoryCount),{
++       CountKeyV27:p.SyncKey,Title:p.Title,ItemNo:p.ItemNo,ItemName:p.ItemName,LocationCode:p.LocationCode,
++       OpeningBalance:Text(p.OpeningBalance,"0.################","en-US"),
++       CountQty:Text(p.CountQty,"0.################","en-US"),
++       Variance:Text(p.Variance,"0.################","en-US"),CountDate:p.CountDate,
++       Counter:p.OwnerEmail,Reason:p.Reason,Comment:p.Comment,Resolved:false}),
++      If(Lower(Trim(old.Counter))=Lower(Trim(p.OwnerEmail)) &&
++         (old.CountKeyV27=p.SyncKey || (IsBlank(old.CountKeyV27) && old.Title=p.Title)) &&
++         old.ItemNo=p.ItemNo && old.LocationCode=p.LocationCode && !IsBlank(old.CountQty) &&
++         IfError(Value(old.CountQty,"en-US")=p.CountQty,false) && !IsBlank(old.OpeningBalance) &&
++         IfError(Value(old.OpeningBalance,"en-US")=p.OpeningBalance,false) &&
++         Coalesce(old.Reason,"")=Coalesce(p.Reason,"") && Coalesce(old.Comment,"")=Coalesce(p.Comment,""),
++         old,Error({Kind:ErrorKind.Validation,Message:"Энэ дугаартай тооллогын агуулга SharePoint дээр өөр байна. Өмнөх мөрийг шалгуулна уу."})))},
++    If(IsBlank(saved.ID),Error({Kind:ErrorKind.Validation,Message:"SharePoint хадгалалтыг баталгаажуулсангүй."}),
++     With({entry:LookUp(colOfflineInventory,SyncKey=p.SyncKey && OwnerEmail=p.OwnerEmail)},
++      If(IsBlank(entry.SyncKey),
++       Collect(colOfflineInventory,Patch(p,{SharePointID:saved.ID,Synced:true}));
++true,
++       Patch(colOfflineInventory,entry,{SharePointID:saved.ID,Synced:true});
++true));
+@@ -26,18 +35 @@
+- IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+-ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+-
+-SaveData(colCountDiskV21,varCountCacheKey)),
+-  Set(varCountCacheReady,false);
+-Set(varCountStorageError,FirstError.Message),
+-  Set(varCountCacheReady,true);
+-Set(varCountStorageError,"");
+-Set(varCountSavedV21,true));
+-
+- If(!varCountSavedV21 && Connection.Connected,
+-  IfError(With({_existing:Coalesce(LookUp(InventoryCount,CountKeyV27=_key && Counter=varCountOwner),LookUp(InventoryCount,Title=varCountAttemptTitleV21 && Counter=varCountOwner))},
+-   With({_saved:Patch(InventoryCount,If(IsBlank(_existing.ID),Defaults(InventoryCount),_existing),{
+-    CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,LocationCode:varLocationCode,
+-    OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:LookUp(colOfflineInventory,SyncKey=_key,CountDate),
+-    Counter:varCountOwner,Reason:If(App.Width<First(App.SizeBreakpoints).Value && phoneReasonItem=varItem.number,Coalesce(phoneCountReason,""),""),Comment:If(App.Width<First(App.SizeBreakpoints).Value,phoneCountNote.Text,""),Resolved:false})},
+-    If(IsBlank(_saved.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер хадгалалтыг баталгаажуулсангүй."}),
+-     Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_key),{SharePointID:_saved.ID,Synced:true});
++     Set(varCountCloudOnlyV21,true);
+@@ -45,3 +37,2 @@
+-Set(varCountCloudOnlyV21,true))));
+-true,
+-   Set(varCountCloudSaveErrorV21,FirstError.Message);
++true))),
++  Set(varCountCloudSaveErrorV21,FirstError.Message);
+@@ -49,9 +40,5 @@
+-
+- If(varCountSavedV21,
+-  Set(varCountLastSavedAtV21,Now());
+-Set(varCountLastSavedQtyV21,_qty);
+-Set(varCountLastSavedItemV21,varItem.number);
+-
+-  Notify(If(varCountCloudOnlyV21,"SharePoint-д хадгаллаа. Төхөөрөмжийн оффлайн хуулбар хадгалагдаагүй.","Төхөөрөмжид хадгаллаа · интернет ормогц автоматаар илгээнэ."),If(varCountCloudOnlyV21,NotificationType.Warning,NotificationType.Success));
+-
+-  Set(varCountAttemptKeyV21,Blank());
++If(varCountSavedV21,Set(varCountLastSavedAtV21,Now());
++Set(varCountLastSavedQtyV21,p.CountQty);
++Set(varCountLastSavedItemV21,p.ItemNo);
++Set(varCountReceiptV369,Blank());
++If(varItem.number=p.ItemNo && varLocationCode=p.LocationCode && varOpeningBalance=p.OpeningBalance && IsNumeric(txtCountQty_2.Text) && IfError(Value(txtCountQty_2.Text)=p.CountQty,false) && Coalesce(If(App.Width<First(App.SizeBreakpoints).Value && phoneReasonItem=varItem.number,phoneCountReason,""),"")=Coalesce(p.Reason,"") && Coalesce(If(App.Width<First(App.SizeBreakpoints).Value,phoneCountNote.
+@@ -77 +64,114 @@
+-Reset(AddMediaButton2_1),
++Reset(AddMediaButton2_1));
++Notify(p.ItemNo & " · " & p.LocationCode & " тооллого SharePoint-д хадгалагдлаа.",NotificationType.Success),Notify("Өмнөх тооллогыг баталгаажуулж чадсангүй. " & varCountCloudSaveErrorV21,NotificationType.Warning)));
++Set(varCountSaving,false)),If(((Lower(User().Email)="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (!IsBlank(varLocationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(varLocatio
++ Notify("Тооллогын өгөгдөл ачаалж байна. Түр хүлээгээд дахин хадгална уу.",NotificationType.Warning),
++Coalesce(varHistoryLoading,false) || Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false),
++ Notify("Одоогийн хадгалалт дуусахыг хүлээнэ үү.",NotificationType.Information),
++!Coalesce(varCountDiskSafeV21,false) && !Connection.Connected,
++ Notify("Офлайн хадгалалтын сан бэлэн биш байна. Интернэтэд холбогдож өгөгдлөө сэргээсний дараа дахин хадгална уу.",NotificationType.Error,10000),
++IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)),Notify("Microsoft 365 хэрэглэгчийг шалгана уу.",NotificationType.Error),
++IsBlank(varItem.number) || IsBlank(varLocationCode) || Trim(txtSearch_4.Text)<>varItem.number,Notify("Бараа болон тухайн агуулахыг сонгоно уу. Хайлтад бичсэн бараагаа баталгаажуулна уу.",NotificationType.Warning),
++IsBlank(txtCountQty_2.Text) || !IsNumeric(txtCountQty_2.Text) || IfError(Value(txtCountQty_2.Text)<0,true),Notify("0 буюу түүнээс их тоо оруулна уу.",NotificationType.Warning),
++IsEmpty(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),itemNo=varItem.number && locationCode=varLocationCode)),Notify("Энэ барааны агуулахын үлдэгдэл алга байна.",NotificationType.Warning),
++IsBlank(varOpeningBalance),Notify("Эхний үлдэгдэл тодорхойгүй байна. Агуулахаа дахин сонгоно уу.",NotificationType.Warning),
++!(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance),Notify("Сонгосон бараа, агуулах, эхний үлдэгдэл хоорондоо тохирохгүй байна. Бараа болон агуулахаа дахин сонгоно уу.",NotificationType.Warning),
++!(Sum(Filter(colOfflineStock As stock,stock.itemNo=varItem.number && stock.locationCode=varLocationCode),quantity)=varOpeningBalance),Set(varLocationCode,Blank());
++Set(varLocationName,Blank());
++Set(varOpeningBalance,Blank());
++Set(varShowWarehouseList,false);
++Set(varCountLocItemV367,varItem.number);
++ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Nam
++
++If(!IsBlank(varItem.number),If(CountRows(colCountLocationsV19)=1,Set(varLocationCode,First(colCountLocationsV19).code);
++Set(varLocationName,First(colCountLocationsV19).displayName);
++Set(varOpeningBalance,First(colCountLocationsV19).Qty),CountRows(colCountLocationsV19)>1,Set(varShowWarehouseList,true),Notify("Энэ барааны агуулахын үлдэгдэл хадгалсан мэдээлэлд алга. Онлайн шинэчлэлт хийсний дараа дахин шалгана уу.",NotificationType.Warning)));
++Notify("Агуулахын үлдэгдэл шинэчлэгдлээ. Эхний үлдэгдлээ шалгаад дахин хадгална уу.",NotificationType.Warning),
++Set(varCountSaving,true);
++Set(varCountSavedV21,false);
++Set(varCountCloudOnlyV21,false);
++
++Set(varCountAttemptKeyV21,Text(GUID()));
++Set(varCountAttemptTitleV21,"COUNT:" & varCountAttemptKeyV21);
++
++With({_key:varCountAttemptKeyV21,_opening:varOpeningBalance,_qty:Value(txtCountQty_2.Text)},
++ Collect(colOfflineInventory,{SyncKey:_key,CountKeyV27:_key,Title:"COUNT:" & _key,ItemNo:varItem.number,ItemName:varItem.displayName,
++ LocationCode:varLocationCode,OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:Now(),Counter:User().FullName,
++ OwnerEmail:varCountOwner,Revision:1,Archived:false,SharePointID:0,SyncError:"",Reason:If(App.Width<First(App.SizeBreakpoints).Value && phoneReasonItem=varItem.number,Coalesce(phoneCountReason,""),""),Comment:If(App.Width<First(App.SizeBreakpoints).Value,phoneCountNote.Text,""),Resolved:false,Synced:false});
++
++ IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
++ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
++
++SaveData(colCountDiskV21,varCountCacheKey)),
++  Set(varCountCacheReady,false);
++Set(varCountStorageError,FirstError.Message),
++  Set(varCountCacheReady,true);
++Set(varCountStorageError,"");
++Set(varCountSavedV21,true));
++
++ If(!varCountSavedV21 && Connection.Connected,Set(varCountReceiptV369,LookUp(colOfflineInventory,SyncKey=_key && OwnerEmail=varCountOwner));
++Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
++
++Set(varCountCloudTitleV369,varCountReceiptV369.Title);
++
++With({p:varCountReceiptV369},
++ IfError(
++  With({old:Coalesce(
++    LookUp(InventoryCount,CountKeyV27=varCountCloudKeyV369),
++    LookUp(InventoryCount,Title=varCountCloudTitleV369))},
++   With({saved:If(IsBlank(old.ID),
++      Patch(InventoryCount,Defaults(InventoryCount),{
++       CountKeyV27:p.SyncKey,Title:p.Title,ItemNo:p.ItemNo,ItemName:p.ItemName,LocationCode:p.LocationCode,
++       OpeningBalance:Text(p.OpeningBalance,"0.################","en-US"),
++       CountQty:Text(p.CountQty,"0.################","en-US"),
++       Variance:Text(p.Variance,"0.################","en-US"),CountDate:p.CountDate,
++       Counter:p.OwnerEmail,Reason:p.Reason,Comment:p.Comment,Resolved:false}),
++      If(Lower(Trim(old.Counter))=Lower(Trim(p.OwnerEmail)) &&
++         (old.CountKeyV27=p.SyncKey || (IsBlank(old.CountKeyV27) && old.Title=p.Title)) &&
++         old.ItemNo=p.ItemNo && old.LocationCode=p.LocationCode && !IsBlank(old.CountQty) &&
++         IfError(Value(old.CountQty,"en-US")=p.CountQty,false) && !IsBlank(old.OpeningBalance) &&
++         IfError(Value(old.OpeningBalance,"en-US")=p.OpeningBalance,false) &&
++         Coalesce(old.Reason,"")=Coalesce(p.Reason,"") && Coalesce(old.Comment,"")=Coalesce(p.Comment,""),
++         old,Error({Kind:ErrorKind.Validation,Message:"Энэ дугаартай тооллогын агуулга SharePoint дээр өөр байна. Өмнөх мөрийг шалгуулна уу."})))},
++    If(IsBlank(saved.ID),Error({Kind:ErrorKind.Validation,Message:"SharePoint хадгалалтыг баталгаажуулсангүй."}),
++     With({entry:LookUp(colOfflineInventory,SyncKey=p.SyncKey && OwnerEmail=p.OwnerEmail)},
++      If(IsBlank(entry.SyncKey),
++       Collect(colOfflineInventory,Patch(p,{SharePointID:saved.ID,Synced:true}));
++true,
++       Patch(colOfflineInventory,entry,{SharePointID:saved.ID,Synced:true});
++true));
++
++     Set(varCountCloudOnlyV21,true);
++Set(varCountSavedV21,true);
++true))),
++  Set(varCountCloudSaveErrorV21,FirstError.Message);
++false)));
++
++ If(varCountSavedV21,
++  Set(varCountReceiptV369,Blank());
++Set(varCountLastSavedAtV21,Now());
++Set(varCountLastSavedQtyV21,_qty);
++Set(varCountLastSavedItemV21,LookUp(colOfflineInventory,SyncKey=_key && OwnerEmail=varCountOwner).ItemNo);
++
++  Notify(If(varCountCloudOnlyV21,"SharePoint-д хадгаллаа. Төхөөрөмжийн оффлайн хуулбар хадгалагдаагүй.","Төхөөрөмжид хадгаллаа · интернет ормогц автоматаар илгээнэ."),If(varCountCloudOnlyV21,NotificationType.Warning,NotificationType.Success));
++
++  With({p:LookUp(colOfflineInventory,SyncKey=_key && OwnerEmail=varCountOwner)},If(varItem.number=p.ItemNo && varLocationCode=p.LocationCode && varOpeningBalance=p.OpeningBalance && IsNumeric(txtCountQty_2.Text) && IfError(Value(txtCountQty_2.Text)=p.CountQty,false) && Coalesce(If(App.Width<First(App.SizeBreakpoints).Value && phoneReasonItem=varItem.number,phoneCountReason,""),"")=Coalesce(p.Reas
++Set(varItem,Blank());
++Set(varOpeningBalance,Blank());
++Set(varBarcodeText,Blank());
++
++  Set(varItemPicture,Blank());
++Set(varNewPicture,Blank());
++Set(varJustSelected,false);
++Set(varLocationCode,Blank());
++Set(varLocationName,Blank());
++Clear(colCountLocationsV19);
++
++  Set(phoneCountItem,Blank());
++Set(phoneCountValue,Blank());
++Set(phoneCountReason,Blank());
++Set(phoneReasonItem,Blank());
++Set(phoneCountNoteOpen,false);
++Reset(phoneCountNote);
++Reset(txtCountQty_2);
++Reset(txtSearch_4);
++Reset(AddMediaButton2_1))),
+@@ -80 +180 @@
+-  Notify("Хадгалагдсангүй. Оруулсан тоо хэвээр үлдсэн. " & If(Connection.Connected,Coalesce(varCountCloudSaveErrorV21,varCountStorageError),varCountStorageError),NotificationType.Error)));
++  Notify(If(IsBlank(varCountReceiptV369.SyncKey),"Хадгалагдсангүй. Оруулсан тоо хэвээр үлдсэн. ","SharePoint-ийн хариу тодорхойгүй байна. Өмнөх тооллогыг дахин шалгаж хадгална уу. ") & If(Connection.Connected,Coalesce(varCountCloudSaveErrorV21,varCountStorageError),varCountStorageError),NotificationType.Error)));
+@@ -84 +184 @@
+-,Notify("Энэ агуулахад тооллого хадгалах эрхгүй.",NotificationType.Error))
++,Notify("Энэ агуулахад тооллого хадгалах эрхгүй.",NotificationType.Error)))
+##### scrWarehouses Button1_2.DisplayMode vs mine
+--- 
++++ 
+@@ -1,2 +1,2 @@
+-=If(App.Width<First(App.SizeBreakpoints).Value,If(IsBlank(varItem.number) || IsBlank(varLocationCode),DisplayMode.Disabled,If(varCountMenuV21,DisplayMode.Disabled,If(varCountSaving || varCountSyncBusy || varHistoryLoading || !Coalesce(varCountLoadDoneV21,false),DisplayMode.Disabled,DisplayMode.Edit))),If(varCountMenuV21,DisplayMode.Disabled,If(varCountSaving || varCountSyncBusy || varHistoryLoadi
+-)
++=If(!IsBlank(varCountReceiptV369.SyncKey),If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || !Coalesce(varCountLoadDoneV21,false) || varCountMenuV21 || !Connection.Connected || !((Lower(User().Email)="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.E
++))
+##### scrWarehouses Label8_22.Text vs mine
+--- 
++++ 
+@@ -1 +1 @@
+-=If(App.Width<First(App.SizeBreakpoints).Value,If(IsBlank(varOpeningBalance) || !(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance),"—",Text(varOpeningBalance,"0.###")),If(IsBlank(varItem.number) || IsBlank(varLocationCode) || IsBlank(varOpeningBalance) || !(varCountLocItemV
++=If(App.Width<First(App.SizeBreakpoints).Value,If(IsBlank(varOpeningBalance) || !(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance && Sum(Filter(colOfflineStock As stock,stock.itemNo=varItem.number && stock.locationCode=varLocationCode),quantity)=varOpeningBalance),"—",Text(
+##### scrWarehouses BarcodeReader3.OnScan vs mine
+--- 
++++ 
+@@ -45 +45 @@
+-ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Name),l.locationCode),Qty:Sum
++ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Nam
+##### scrWarehouses txtSearch_4.OnChange vs mine
+--- 
++++ 
+@@ -1 +1,8 @@
+-=If(Trim(Self.Text)<>Coalesce(varItem.number,""),Set(varJustSelected,false);
++=If(Trim(Self.Text)<>Coalesce(varItem.number,""),If(App.Width<First(App.SizeBreakpoints).Value,Set(phoneCountItem,Blank());
++Set(phoneCountValue,Blank());
++Set(phoneCountReason,Blank());
++Set(phoneReasonItem,Blank());
++Set(phoneCountNoteOpen,false);
++Reset(phoneCountNote);
++Reset(txtCountQty_2));
++Set(varJustSelected,false);
+@@ -15 +22 @@
+-ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Name),l.locationCode),Qty:Sum
++ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Nam
+##### scrWarehouses galSuggestions_3.OnSelect vs mine
+--- 
++++ 
+@@ -1 +1,8 @@
+-=Set(varItem, ThisItem);
++=If(App.Width<First(App.SizeBreakpoints).Value,Set(phoneCountItem,Blank());
++Set(phoneCountValue,Blank());
++Set(phoneCountReason,Blank());
++Set(phoneReasonItem,Blank());
++Set(phoneCountNoteOpen,false);
++Reset(phoneCountNote);
++Reset(txtCountQty_2));
++Set(varItem, ThisItem);
+@@ -15 +22 @@
+-ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Name),l.locationCode),Qty:Sum
++ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Nam
+##### нүүр hOverlaySearchRow.OnSelect vs mine
+--- 
++++ 
+@@ -4,10 +4 @@
+-Set(varCountAttemptKeyV21,Blank());
+-Set(varLocationCode,Blank());
+-Set(varLocationName,Blank());
+-Set(varOpeningBalance,Blank());
+-Set(varShowWarehouseList,false);
+-Set(varCountLocItemV367,varItem.number);
+-ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Name),l.locationCode),Qty:Sum
+-If(!IsBlank(varItem.number),If(CountRows(colCountLocationsV19)=1,Set(varLocationCode,First(colCountLocationsV19).code);
+-Set(varLocationName,First(colCountLocationsV19).displayName);
+-Set(varOpeningBalance,First(colCountLocationsV19).Qty),CountRows(colCountLocationsV19)>1,Set(varShowWarehouseList,true),Notify("Энэ барааны агуулахын үлдэгдэл хадгалсан мэдээлэлд алга. Онлайн шинэчлэлт хийсний дараа дахин шалгана уу.",NotificationType.Warning)));
++Set(varCountHomePickV369,true);
+##### scrWarehouses scrWarehouses.OnVisible vs base
+--- 
++++ 
+@@ -1,3 +1,3 @@
+-=Set(pgAccess,Blank());
+-If(Connection.Connected,IfError(Refresh(AssetUserAccess);
+-Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())));
++=If(Connection.Connected,Set(pgAccess,Blank());
++IfError(Refresh(AssetUserAccess);
++Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())),If(IsBlank(pgAccess.UserEmail) || Lower(Trim(pgAccess.UserEmail))<>Lower(Trim(User().Email)) || !Coalesce(pgAccess.Active,false) || (!IsBlank(pgAccess.ExpiresAt) && pgAccess.ExpiresAt<=Now()),Set(pgAccess,Blank())));
+@@ -5,2 +5,22 @@
+-Set(varCountMenuV21,false)
+-)
++Set(varCountMenuV21,false);
++If(Coalesce(varCountHomePickV369,false),Set(varLocationCode,Blank());
++Set(varLocationName,Blank());
++Set(varOpeningBalance,Blank());
++Set(varShowWarehouseList,false);
++If(App.Width<First(App.SizeBreakpoints).Value,Set(phoneCountItem,Blank());
++Set(phoneCountValue,Blank());
++Set(phoneCountReason,Blank());
++Set(phoneReasonItem,Blank());
++Set(phoneCountNoteOpen,false);
++Reset(phoneCountNote);
++Reset(txtCountQty_2));
++Reset(txtSearch_4);
++Reset(txtCountQty_2);
++Set(varCountLocItemV367,varItem.number);
++ClearCollect(colCountLocationsV19,ForAll(GroupBy(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),itemNo=varItem.number && !IsBlank(locationCode)),locationCode,LocationRows) As l,{code:l.locationCode,displayName:Coalesce(LookUp(colPLocationMaster,Code=l.locationCode,Nam
++
++If(!IsBlank(varItem.number),If(CountRows(colCountLocationsV19)=1,Set(varLocationCode,First(colCountLocationsV19).code);
++Set(varLocationName,First(colCountLocationsV19).displayName);
++Set(varOpeningBalance,First(colCountLocationsV19).Qty),CountRows(colCountLocationsV19)>1,Set(varShowWarehouseList,true),Notify("Энэ барааны агуулахын үлдэгдэл хадгалсан мэдээлэлд алга. Онлайн шинэчлэлт хийсний дараа дахин шалгана уу.",NotificationType.Warning))))
++);
++Set(varCountHomePickV369,false)
+##### scrWarehouses Button1_2.Text vs base
+--- 
++++ 
+@@ -1,2 +1,2 @@
+-=If(App.Width<First(App.SizeBreakpoints).Value,If(varCountSaving,"Хадгалж байна…","Хадгалаад дараагийнх →"),If(varCountSaving,"Хадгалж байна…","Хадгалах  →")
+-)
++=If(!IsBlank(varCountReceiptV369.SyncKey),If(varCountSaving,"Шалгаж байна…","Өмнөх тооллогыг дахин хадгалах · " & varCountReceiptV369.ItemNo),If(App.Width<First(App.SizeBreakpoints).Value,If(varCountSaving,"Хадгалж байна…","Хадгалаад дараагийнх →"),If(varCountSaving,"Хадгалж байна…","Хадгалах  →")
++))
+##### нүүр нүүр.OnVisible vs base
+--- 
++++ 
+@@ -1,3 +1,3 @@
+-=Set(pgAccess,Blank());
+-If(Connection.Connected,IfError(Refresh(AssetUserAccess);
+-Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())));
++=If(Connection.Connected,Set(pgAccess,Blank());
++IfError(Refresh(AssetUserAccess);
++Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())),If(IsBlank(pgAccess.UserEmail) || Lower(Trim(pgAccess.UserEmail))<>Lower(Trim(User().Email)) || !Coalesce(pgAccess.Active,false) || (!IsBlank(pgAccess.ExpiresAt) && pgAccess.ExpiresAt<=Now()),Set(pgAccess,Blank())));
+@@ -33 +32,0 @@
+-Clear(colAutoItemsV16);
+@@ -50 +48,0 @@
+-Clear(colAutoStockV16);
+@@ -123,14 +121,50 @@
+-IfError(
+-ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,JoinCost:i.unitCost,JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+-
+-Collect(colDJoinV17,ForAll(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),!IsBlank(itemNo) && !IsBlank(locationCode)) As s,{JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+-
+-ClearCollect(colDStockBaseV17,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+-With({_master:LookUp(g.JoinRows,JoinKind=0)},
+-{StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+-{itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+-
+-Set(varDValue,If(IsEmpty(colDStockBaseV17),Blank(),Sum(colDStockBaseV17,Qty*Cost)));
+-
+-Set(varDValuationMissing,CountRows(Filter(colDStockBaseV17,IsBlank(Cost))));
+-
++With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:!Coalesce(varAutoStockError,true) && !Coalesce(varAutoItemsError,true)},
++    IfError(
++        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);
++Set(varDStockReadyV17,false);
++
++Set(varDStockBuiltAtV17,Blank());
++Clear(colDStockBaseV17);
++
++If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));
++Clear(colDDiskV369);
++
++    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
++
++    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
++        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
++            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
++
++            Set(varDStockBuiltAtV17,_head.FetchedV369);
++Set(varDStockReadyV17,true)));
++
++    Clear(colDDiskV369)));
++
++        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
++            (IsEmpty(colDStockBaseV17) || !Coalesce(varAutoStockError,true)))),
++            ClearCollect(colDJoinV17,ForAll(If(_pair,colAutoItemsV16,colOfflineItems) As i,{JoinNo:i.number,JoinKind:0,
++                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++
++            Collect(colDJoinV17,ForAll(Filter(If(_pair,colAutoStockV16,colOfflineStock),!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
++                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++
++            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
++                With({_master:LookUp(g.JoinRows,JoinKind=0)},
++                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
++                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
++                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++
++            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
++                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});
++Clear(colDLegacyV369);
++
++                IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
++
++                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
++                    Patch(r,{Cost:Blank()})));
++Clear(colDLegacyV369));
++
++            ClearCollect(colDStockBaseV17,colDCandidateV369);
++
++            If(_pair,Set(varDStockBuiltAtV17,Now());
+@@ -138,4 +172,15 @@
+-Set(varDStockBuiltAtV17,Now());
+-
+-IfError(SaveData(colDStockBaseV17,"DashboardStockV17"),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+-
++
++If(!IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
++
++    Collect(colDDiskV369,colDStockBaseV17);
++
++    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++
++    Clear(colDDiskV369))));
++
++        true,
++        Set(varDStockCacheErrorV17,true);
++false);
++
++    Clear(colDCandidateV369);
+@@ -143,4 +188,5 @@
+-true,
+-Set(varDStockReadyV17,false);
+-Clear(colDJoinV17);
+-false);
++
++    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
++
++    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
++        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
+@@ -148,0 +195,2 @@
++Clear(colAutoItemsV16);
++Clear(colAutoStockV16);
+##### нүүр hPadHeroValue.Text vs base
+--- 
++++ 
+@@ -1 +1 @@
+-=If(IsBlank(Sum(Filter(colDStockBaseV17,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),Qty*Cost)),"—",Text(Sum(Filter(colDStockBaseV17,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),Qty*Cost),"#,##0") & " ₮")
++=With({_rows:Filter(colDStockBaseV17,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode))},If(!(Coalesce(varDStockReadyV17,false) && varDStockScopeV369=If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),
+##### ScrCountHome ScrCountHome.OnVisible vs base
+--- 
++++ 
+@@ -21 +20,0 @@
+-Clear(colAutoItemsV16);
+@@ -38 +36,0 @@
+-Clear(colAutoStockV16);
+@@ -111,2 +109,4 @@
+-IfError(
+-ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,JoinCost:i.unitCost,JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:!Coalesce(varAutoStockError,true) && !Coalesce(varAutoItemsError,true)},
++    IfError(
++        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);
++Set(varDStockReadyV17,false);
+@@ -114 +114,2 @@
+-Collect(colDJoinV17,ForAll(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),!IsBlank(itemNo) && !IsBlank(locationCode)) As s,{JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++Set(varDStockBuiltAtV17,Blank());
++Clear(colDStockBaseV17);
+@@ -116,4 +117,3 @@
+-ClearCollect(colDStockBaseV17,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+-With({_master:LookUp(g.JoinRows,JoinKind=0)},
+-{StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+-{itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));
++Clear(colDDiskV369);
+@@ -121 +121 @@
+-Set(varDValue,If(IsEmpty(colDStockBaseV17),Blank(),Sum(colDStockBaseV17,Qty*Cost)));
++    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
+@@ -123 +123,3 @@
+-Set(varDValuationMissing,CountRows(Filter(colDStockBaseV17,IsBlank(Cost))));
++    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
++        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
++            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
+@@ -124,0 +127,32 @@
++            Set(varDStockBuiltAtV17,_head.FetchedV369);
++Set(varDStockReadyV17,true)));
++
++    Clear(colDDiskV369)));
++
++        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
++            (IsEmpty(colDStockBaseV17) || !Coalesce(varAutoStockError,true)))),
++            ClearCollect(colDJoinV17,ForAll(If(_pair,colAutoItemsV16,colOfflineItems) As i,{JoinNo:i.number,JoinKind:0,
++                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++
++            Collect(colDJoinV17,ForAll(Filter(If(_pair,colAutoStockV16,colOfflineStock),!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
++                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++
++            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
++                With({_master:LookUp(g.JoinRows,JoinKind=0)},
++                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
++                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
++                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++
++            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
++                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});
++Clear(colDLegacyV369);
++
++                IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
++
++                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
++                    Patch(r,{Cost:Blank()})));
++Clear(colDLegacyV369));
++
++            ClearCollect(colDStockBaseV17,colDCandidateV369);
++
++            If(_pair,Set(varDStockBuiltAtV17,Now());
+@@ -126 +159,0 @@
+-Set(varDStockBuiltAtV17,Now());
+@@ -128 +161,2 @@
+-IfError(SaveData(colDStockBaseV17,"DashboardStockV17"),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++If(!IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
+@@ -130,4 +164,8 @@
+-Clear(colDJoinV17);
+-true,
+-Set(varDStockReadyV17,false);
+-Clear(colDJoinV17);
++    Collect(colDDiskV369,colDStockBaseV17);
++
++    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++
++    Clear(colDDiskV369))));
++
++        true,
++        Set(varDStockCacheErrorV17,true);
+@@ -135,0 +174,8 @@
++    Clear(colDCandidateV369);
++Clear(colDJoinV17);
++
++    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
++
++    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
++        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
++
+@@ -136,0 +183,2 @@
++Clear(colAutoItemsV16);
++Clear(colAutoStockV16);
+##### ScrAccess phoneProfileSync.OnSelect vs base
+--- 
++++ 
+@@ -19 +18,0 @@
+-Clear(colAutoItemsV16);
+@@ -36 +34,0 @@
+-Clear(colAutoStockV16);
+@@ -109,2 +107,4 @@
+-IfError(
+-ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,JoinCost:i.unitCost,JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:!Coalesce(varAutoStockError,true) && !Coalesce(varAutoItemsError,true)},
++    IfError(
++        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);
++Set(varDStockReadyV17,false);
+@@ -112 +112,2 @@
+-Collect(colDJoinV17,ForAll(Filter(colOfflineStock,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode),!IsBlank(itemNo) && !IsBlank(locationCode)) As s,{JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++Set(varDStockBuiltAtV17,Blank());
++Clear(colDStockBaseV17);
+@@ -114,4 +115,3 @@
+-ClearCollect(colDStockBaseV17,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+-With({_master:LookUp(g.JoinRows,JoinKind=0)},
+-{StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+-{itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));
++Clear(colDDiskV369);
+@@ -119 +119 @@
+-Set(varDValue,If(IsEmpty(colDStockBaseV17),Blank(),Sum(colDStockBaseV17,Qty*Cost)));
++    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
+@@ -121 +121,3 @@
+-Set(varDValuationMissing,CountRows(Filter(colDStockBaseV17,IsBlank(Cost))));
++    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
++        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
++            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
+@@ -122,0 +125,32 @@
++            Set(varDStockBuiltAtV17,_head.FetchedV369);
++Set(varDStockReadyV17,true)));
++
++    Clear(colDDiskV369)));
++
++        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
++            (IsEmpty(colDStockBaseV17) || !Coalesce(varAutoStockError,true)))),
++            ClearCollect(colDJoinV17,ForAll(If(_pair,colAutoItemsV16,colOfflineItems) As i,{JoinNo:i.number,JoinKind:0,
++                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++
++            Collect(colDJoinV17,ForAll(Filter(If(_pair,colAutoStockV16,colOfflineStock),!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
++                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++
++            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
++                With({_master:LookUp(g.JoinRows,JoinKind=0)},
++                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
++                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
++                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++
++            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
++                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});
++Clear(colDLegacyV369);
++
++                IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
++
++                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
++                    Patch(r,{Cost:Blank()})));
++Clear(colDLegacyV369));
++
++            ClearCollect(colDStockBaseV17,colDCandidateV369);
++
++            If(_pair,Set(varDStockBuiltAtV17,Now());
+@@ -124 +157,0 @@
+-Set(varDStockBuiltAtV17,Now());
+@@ -126 +159,2 @@
+-IfError(SaveData(colDStockBaseV17,"DashboardStockV17"),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++If(!IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
+@@ -128,4 +162,8 @@
+-Clear(colDJoinV17);
+-true,
+-Set(varDStockReadyV17,false);
+-Clear(colDJoinV17);
++    Collect(colDDiskV369,colDStockBaseV17);
++
++    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++
++    Clear(colDDiskV369))));
++
++        true,
++        Set(varDStockCacheErrorV17,true);
+@@ -133,0 +172,8 @@
++    Clear(colDCandidateV369);
++Clear(colDJoinV17);
++
++    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
++
++    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
++        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
++
+@@ -134,0 +181,2 @@
++Clear(colAutoItemsV16);
++Clear(colAutoStockV16);
+##### Screen1 Screen1.OnVisible vs base
+--- 
++++ 
+@@ -4 +4,79 @@
+-If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(varWView,If(App.Width<First(App.SizeBreakpoints).Value,"stock","overview"));
++If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),If(!Coalesce(varDStockBuildingV17,false),
++Set(varDStockBuildingV17,true);
++
++With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:false},
++    IfError(
++        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);
++Set(varDStockReadyV17,false);
++
++Set(varDStockBuiltAtV17,Blank());
++Clear(colDStockBaseV17);
++
++If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));
++Clear(colDDiskV369);
++
++    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
++
++    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
++        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
++            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
++
++            Set(varDStockBuiltAtV17,_head.FetchedV369);
++Set(varDStockReadyV17,true)));
++
++    Clear(colDDiskV369)));
++
++        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
++            (IsEmpty(colDStockBaseV17) || false))),
++            ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,
++                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++
++            Collect(colDJoinV17,ForAll(Filter(colOfflineStock,!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
++                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++
++            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
++                With({_master:LookUp(g.JoinRows,JoinKind=0)},
++                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
++                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
++                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++
++            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
++                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});
++Clear(colDLegacyV369);
++
++                IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
++
++                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
++                    Patch(r,{Cost:Blank()})));
++Clear(colDLegacyV369));
++
++            ClearCollect(colDStockBaseV17,colDCandidateV369);
++
++            If(_pair,Set(varDStockBuiltAtV17,Now());
++Set(varDStockReadyV17,true);
++
++If(!IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
++
++    Collect(colDDiskV369,colDStockBaseV17);
++
++    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++
++    Clear(colDDiskV369))));
++
++        true,
++        Set(varDStockCacheErrorV17,true);
++false);
++
++    Clear(colDCandidateV369);
++Clear(colDJoinV17);
++
++    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
++
++    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
++        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
++
++Set(varDStockBuildingV17,false));
++
++Set(varWView,If(App.Width<First(App.SizeBreakpoints).Value,"stock","overview"));
+##### ScrDashboard ScrDashboard.OnVisible vs base
+--- 
++++ 
+@@ -4 +4,79 @@
+-If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|dashboard|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Clear(colDLatest);
++If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|dashboard|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),If(!Coalesce(varDStockBuildingV17,false),
++Set(varDStockBuildingV17,true);
++
++With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:false},
++    IfError(
++        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);
++Set(varDStockReadyV17,false);
++
++Set(varDStockBuiltAtV17,Blank());
++Clear(colDStockBaseV17);
++
++If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));
++Clear(colDDiskV369);
++
++    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
++
++    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
++        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
++            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
++
++            Set(varDStockBuiltAtV17,_head.FetchedV369);
++Set(varDStockReadyV17,true)));
++
++    Clear(colDDiskV369)));
++
++        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
++            (IsEmpty(colDStockBaseV17) || false))),
++            ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,
++                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
++
++            Collect(colDJoinV17,ForAll(Filter(colOfflineStock,!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
++                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
++
++            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
++                With({_master:LookUp(g.JoinRows,JoinKind=0)},
++                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
++                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
++                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
++
++            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
++                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});
++Clear(colDLegacyV369);
++
++                IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
++
++                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
++                    Patch(r,{Cost:Blank()})));
++Clear(colDLegacyV369));
++
++            ClearCollect(colDStockBaseV17,colDCandidateV369);
++
++            If(_pair,Set(varDStockBuiltAtV17,Now());
++Set(varDStockReadyV17,true);
++
++If(!IsBlank(User().EntraObjectId),
++    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
++
++    Collect(colDDiskV369,colDStockBaseV17);
++
++    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
++
++    Clear(colDDiskV369))));
++
++        true,
++        Set(varDStockCacheErrorV17,true);
++false);
++
++    Clear(colDCandidateV369);
++Clear(colDJoinV17);
++
++    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
++
++    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
++        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
++
++Set(varDStockBuildingV17,false));
++
++Clear(colDLatest);
+##### ScrDashboard dPhoneHeroValue.Text vs base
+--- 
++++ 
+@@ -1 +1 @@
+-=If(IsBlank(If(varDStockReadyV17,Sum(colDStock,Qty*Cost),Blank())),"—",Text(If(varDStockReadyV17,Sum(colDStock,Qty*Cost),Blank()),"#,##0") & " ₮")
++=If(IsBlank(If(Coalesce(varDStockReadyV17,false) && varDStockScopeV369=If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")) && !IsEmpty(colDStock) && CountIf(colDStock,Qty<>0 && IsBlank(Cost))=0,Sum(colDStock,Qty*Cost),Blank())),"—",Te
+##### ScrCombined pgReportRow0.Text vs base
+--- 
++++ 
+@@ -1 +1 @@
+-=With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers
++=With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers
+##### ScrDashboard dExportSend.OnSelect vs base
+--- 
++++ 
+@@ -9 +9 @@
+-") & " · " & User().Email & "</p><p>Хугацаа: " & Text(varDFrom,"yyyy-mm-dd") & " — " & Text(Today(),"yyyy-mm-dd") & "</p><p>Хуудас: Dashboard · " & varDView & "</p><p>Шүүлт: өөрийн тооллого · " & varDPeriod & "</p><p>Нийт мөр: " & CountRows(If(varDView="variance",colDVariance,colDLatest)) & "</p><p>Үлдэгдлийн үнэлгээ: " & Coalesce(Text(If(varDStockReadyV17,Sum(colDStock,Qty*Cost),Blank()),"#,##0"
++") & " · " & User().Email & "</p><p>Хугацаа: " & Text(varDFrom,"yyyy-mm-dd") & " — " & Text(Today(),"yyyy-mm-dd") & "</p><p>Хуудас: Dashboard · " & varDView & "</p><p>Шүүлт: өөрийн тооллого · " & varDPeriod & "</p><p>Нийт мөр: " & CountRows(If(varDView="variance",colDVariance,colDLatest)) & "</p><p>Үлдэгдлийн үнэлгээ: " & Coalesce(Text(If(Coalesce(varDStockReadyV17,false) && varDStockScopeV369=If

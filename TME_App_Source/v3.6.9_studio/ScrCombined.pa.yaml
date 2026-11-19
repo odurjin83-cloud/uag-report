@@ -1,0 +1,1085 @@
+Screens:
+  ScrCombined:
+    Properties:
+      OnVisible: |-
+        =Set(pgAccess,Blank());If(Connection.Connected,IfError(Refresh(AssetUserAccess);Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgGroup,"Агуулах");Set(pgTable,false);Set(pgDiff,false);Set(pgRank,0);Set(pgLocation,"");Set(pgReportReady,false);Reset(pgSearch);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+        )
+      Fill: |-
+        =ColorValue("#F5F4F1")
+      Height: |-
+        =App.Height
+      Width: |-
+        =App.Width
+    Children:
+      - ScrCombinedRail:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =0
+            Y: |-
+              =0
+            Width: |-
+              =156
+            Height: |-
+              =Parent.Height
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            Text: |-
+              =""
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value)
+      - ScrCombinedNav0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =8
+            Y: |-
+              =64
+            Width: |-
+              =140
+            Height: |-
+              =40
+            Size: |-
+              =12
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Нүүр"
+            OnSelect: |-
+              =Navigate(нүүр,ScreenTransition.None)
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|home|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+      - ScrCombinedNav1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =8
+            Y: |-
+              =112
+            Width: |-
+              =140
+            Height: |-
+              =40
+            Size: |-
+              =12
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Тооллого"
+            OnSelect: |-
+              =Navigate(ScrCountHome,ScreenTransition.None)
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+      - ScrCombinedNav2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =8
+            Y: |-
+              =160
+            Width: |-
+              =140
+            Height: |-
+              =40
+            Size: |-
+              =12
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Агуулах"
+            OnSelect: |-
+              =Navigate(Screen1,ScreenTransition.None)
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+      - ScrCombinedNav3:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =8
+            Y: |-
+              =208
+            Width: |-
+              =140
+            Height: |-
+              =40
+            Size: |-
+              =12
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Зарлага"
+            OnSelect: |-
+              =Navigate(ScrIssueA25Test,ScreenTransition.None)
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title)))
+      - ScrCombinedNav4:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =8
+            Y: |-
+              =256
+            Width: |-
+              =140
+            Height: |-
+              =40
+            Size: |-
+              =12
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Нэгдсэн тайлан"
+            OnSelect: |-
+              =Navigate(ScrCombined,ScreenTransition.None)
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+      - ScrCombinedNav5:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =8
+            Y: |-
+              =304
+            Width: |-
+              =140
+            Height: |-
+              =40
+            Size: |-
+              =12
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Хэрэглэгч ба эрх"
+            OnSelect: |-
+              =Navigate(ScrPageAdmin,ScreenTransition.None)
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|admin|" in pgAccess.Title)))
+      - ScrCombinedHead:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: |-
+              =8
+            Width: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            Height: |-
+              =44
+            Size: |-
+              =22
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =Color.Transparent
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Нэгдсэн тайлан · бүртгэсэн өдрөөр"
+            FontWeight: |-
+              =FontWeight.Bold
+      - ScrCombinedBack:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =Parent.Width-78
+            Y: |-
+              =8
+            Width: |-
+              =64
+            Height: |-
+              =40
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Буцах"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width<First(App.SizeBreakpoints).Value)
+            OnSelect: |-
+              =Back()
+      - pgPeriod0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0/3
+            Y: |-
+              =57
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/3-4
+            Height: |-
+              =36
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =If(pgFrom=Today(),ColorValue("#FFE3D2"),Color.White)
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Өнөөдөр"
+            OnSelect: |-
+              =Set(pgFrom,Today());Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+      - pgPeriod1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*1/3
+            Y: |-
+              =57
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/3-4
+            Height: |-
+              =36
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =If(pgFrom=DateAdd(Today(),-6,TimeUnit.Days),ColorValue("#FFE3D2"),Color.White)
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="7 хоног"
+            OnSelect: |-
+              =Set(pgFrom,DateAdd(Today(),-6,TimeUnit.Days));Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+      - pgPeriod2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*2/3
+            Y: |-
+              =57
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/3-4
+            Height: |-
+              =36
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =If(pgFrom=Date(Year(Today()),Month(Today()),1),ColorValue("#FFE3D2"),Color.White)
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Энэ сар"
+            OnSelect: |-
+              =Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+      - pgSearch:
+          Control: Classic/TextInput@2.3.2
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: |-
+              =98
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.62
+            Height: |-
+              =40
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Default: |-
+              =""
+            HintText: |-
+              ="Бараа, код, агуулах, ажилтан хайх"
+            OnChange: |-
+              =Set(pgRank,0)
+      - pgDiffOnly:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.63
+            Y: |-
+              =98
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.37
+            Height: |-
+              =40
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              =If(pgDiff,"✓ Зөрүүтэй","Зөвхөн зөрүүтэй")
+            OnSelect: |-
+              =Set(pgDiff,!pgDiff);Set(pgRank,0)
+      - pgKpi0:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,0,0)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,148,148)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            Height: |-
+              =58
+            Size: |-
+              =13
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Тоолсон мөр" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},Text(CountRows(t))),"—")
+            PaddingLeft: |-
+              =10
+            FontWeight: |-
+              =FontWeight.Semibold
+      - pgKpi1:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,1,1)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,148,148)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            Height: |-
+              =58
+            Size: |-
+              =13
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Тоо таарсан мөрийн хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(IsEmpty(t),"—",Text(CountIf(t,pgVariance=0)/CountRows(t),"0.0%"))),"—")
+            PaddingLeft: |-
+              =10
+            FontWeight: |-
+              =FontWeight.Semibold
+      - pgKpi2:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,2,0)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,148,210)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            Height: |-
+              =58
+            Size: |-
+              =13
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Дутсан барааны дүн" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(CountIf(t,pgVariance<0 && IsBlank(cost))>0,"Өртөг дутуу",Text(-Sum(Filter(t,pgVariance<0),pgVariance*cost),"#,##0") & " ₮")),"—")
+            PaddingLeft: |-
+              =10
+            FontWeight: |-
+              =FontWeight.Semibold
+      - pgKpi3:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,0,1)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,210,210)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            Height: |-
+              =58
+            Size: |-
+              =13
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Илүү гарсан барааны дүн" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(CountIf(t,pgVariance>0 && IsBlank(cost))>0,"Өртөг дутуу",Text(Sum(Filter(t,pgVariance>0),pgVariance*cost),"#,##0") & " ₮")),"—")
+            PaddingLeft: |-
+              =10
+            FontWeight: |-
+              =FontWeight.Semibold
+      - pgKpi4:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,1,0)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,210,272)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            Height: |-
+              =58
+            Size: |-
+              =13
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Үлдэгдлийн дүнд тоолсон барааны эзлэх хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},With({stock:Filter(colDStockBaseV17,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode) && Qty>0)},If(IsEmpty(stock) || Sum(stock,Qty*Cost)<=0,"—",Text(Sum(Filter(stock As st,!IsBlank(LookUp(t,ItemNo=st.itemNo && LocationCode=st.locationCode,ID))),Qty*Cost)/Sum(stock,Qty*Cost),"0.0%")))),"—")
+            PaddingLeft: |-
+              =10
+            FontWeight: |-
+              =FontWeight.Semibold
+      - pgKpi5:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,2,1)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,210,272)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            Height: |-
+              =58
+            Size: |-
+              =13
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Зөрүүний нийт дүн" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(CountIf(t,pgVariance<>0 && IsBlank(cost))>0,"Өртөг дутуу",Text(Sum(t,pgVariance*cost),"#,##0") & " ₮")),"—")
+            PaddingLeft: |-
+              =10
+            FontWeight: |-
+              =FontWeight.Semibold
+      - pgGrouping0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0/4
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            Height: |-
+              =38
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =If(pgGroup="Агуулах",ColorValue("#FFE3D2"),Color.White)
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Агуулах"
+            OnSelect: |-
+              =Set(pgGroup,"Агуулах");Set(pgRank,0)
+      - pgGrouping1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*1/4
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            Height: |-
+              =38
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =If(pgGroup="Ажилтан",ColorValue("#FFE3D2"),Color.White)
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Ажилтан"
+            OnSelect: |-
+              =Set(pgGroup,"Ажилтан");Set(pgRank,0)
+      - pgGrouping2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*2/4
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            Height: |-
+              =38
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =If(pgGroup="Бараа",ColorValue("#FFE3D2"),Color.White)
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Бараа"
+            OnSelect: |-
+              =Set(pgGroup,"Бараа");Set(pgRank,0)
+      - pgGrouping3:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*3/4
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            Height: |-
+              =38
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =If(pgGroup="Өдөр",ColorValue("#FFE3D2"),Color.White)
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Өдөр"
+            OnSelect: |-
+              =Set(pgGroup,"Өдөр");Set(pgRank,0)
+      - pgViewMode:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+44
+            Width: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            Height: |-
+              =36
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              =If(pgTable,"Хүснэгт  ·  График харах","График  ·  Хүснэгт харах")
+            OnSelect: |-
+              =Set(pgTable,!pgTable)
+      - pgChartTitle:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+85
+            Width: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0)
+            Height: |-
+              =34
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Өдөр бүр тоолсон мөрийн тоо"
+            PaddingLeft: |-
+              =10
+            FontWeight: |-
+              =FontWeight.Semibold
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && !pgTable && pgReportReady)
+      - pgChart:
+          Control: Image@2.2.3
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+119
+            Width: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0)
+            Height: |-
+              =142
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Image: |-
+              ="data:image/svg+xml;utf8," & EncodeUrl(With({t:Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),n:DateDiff(pgFrom,Today())+1},With({days:AddColumns(Sequence(n) As d,total,CountIf(t,DateValue(Text(Created))=DateAdd(pgFrom,d.Value-1,TimeUnit.Days)))},"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 190'><path d='M12 160H510' stroke='#ddd'/>" & Concat(days As d,"<rect x='" & Text(12+(d.Value-1)*496/n,"0.0","en-US") & "' y='" & Text(160-145*d.total/Max(1,Max(days,total)),"0.0","en-US") & "' width='" & Text(Max(2,470/n),"0.0","en-US") & "' height='" & Text(145*d.total/Max(1,Max(days,total)),"0.0","en-US") & "' fill='#ed601f' rx='2'/>") & "</svg>")))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && !pgTable && pgReportReady)
+      - pgReportRow0:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+86
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Height: |-
+              =42
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+1)
+            Text: |-
+              =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+1<1 || pgRank+1>CountRows(t),"",With({r:Index(t,pgRank+1)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            PaddingLeft: |-
+              =10
+      - pgReportRow1:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+131
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Height: |-
+              =42
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+2)
+            Text: |-
+              =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+2<1 || pgRank+2>CountRows(t),"",With({r:Index(t,pgRank+2)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            PaddingLeft: |-
+              =10
+      - pgReportRow2:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+176
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Height: |-
+              =42
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+3)
+            Text: |-
+              =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+3<1 || pgRank+3>CountRows(t),"",With({r:Index(t,pgRank+3)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            PaddingLeft: |-
+              =10
+      - pgReportRow3:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+221
+            Width: |-
+              =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Height: |-
+              =42
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+4)
+            Text: |-
+              =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+4<1 || pgRank+4>CountRows(t),"",With({r:Index(t,pgRank+4)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            PaddingLeft: |-
+              =10
+      - pgMoreRows:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+270
+            Width: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            Height: |-
+              =38
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Дараагийн мөрүүд"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>4)
+            OnSelect: |-
+              =Set(pgRank,If(pgRank+4>=CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)),0,pgRank+4))
+      - pgEmpty:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+90
+            Width: |-
+              =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            Height: |-
+              =48
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              =If(pgReportReady,"Сонгосон нөхцөлд мөр олдсонгүй.","Тайлан бүрэн ачаалагдаагүй.")
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (!pgReportReady || IsEmpty(Filter(pgRows,(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))))
+      - pgDenied1393:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =Max(12,(Parent.Width-320)/2)
+            Y: |-
+              =Max(12,(Parent.Height-76)/2)
+            Width: |-
+              =Min(320,Parent.Width-24)
+            Height: |-
+              =76
+            Size: |-
+              =14
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Энэ хуудасны эрх холбогдоогүй · Профайл"
+            Visible: |-
+              =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)

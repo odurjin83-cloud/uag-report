@@ -1,0 +1,815 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ScrCountHome:
+    Properties:
+      Fill: =ColorValue("#F3F6F2")
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      OnVisible: |-
+        =Set(pgAccess,Blank());If(Connection.Connected,IfError(Refresh(AssetUserAccess);Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false;If(Connection.Connected && !Coalesce(varStartupSyncRunning,false) &&
+            (IsBlank(varAutoDataChecked) || DateDiff(varAutoDataChecked,Now(),TimeUnit.Minutes)>=15),If(Connection.Connected && !Coalesce(varStartupSyncRunning,false),
+        Set(varStartupSyncRunning,true);
+        Concurrent(Set(varAutoItemsError,false);
+        IfError(
+            Set(varAutoItemsResponse,PA_GetItemsSnapshot.Run());
+            ClearCollect(colAutoItemsV16,ForAll(Table(ParseJSON(Coalesce(varAutoItemsResponse.itemsjson,"[]"))) As r,{number:Text(r.Value.number),displayName:Text(r.Value.displayName),unitOfMeasure:Text(r.Value.unitOfMeasure),itemCategory:Text(r.Value.itemCategory),inventory:Value(r.Value.inventory),unitCost:Value(r.Value.unitCost),unitPrice:Value(r.Value.unitPrice)}));
+            If(IsEmpty(colAutoItemsV16),Set(varAutoItemsError,true),
+                IfError(SaveData(colAutoItemsV16,"OfflineItems"),Set(varAutoItemsCacheError,true),Set(varAutoItemsCacheError,false));
+                ClearCollect(colOfflineItems,colAutoItemsV16);Set(varAutoItemsUpdated,Now());Set(varAutoItemsResponse,Blank()));true,
+            Set(varAutoItemsError,true);false),
+        Set(varAutoStockError,false);
+        IfError(
+            Set(varAutoStockResponse,PA_GetStockFromExcel.Run());
+            ClearCollect(colAutoStockV16,ForAll(Table(ParseJSON(Coalesce(varAutoStockResponse.stockjson,"[]"))) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),quantity:Value(r.Value.quantity)}));
+            If(IsEmpty(colAutoStockV16),Set(varAutoStockError,true),
+                IfError(SaveData(colAutoStockV16,"OfflineStock"),Set(varAutoStockCacheError,true),Set(varAutoStockCacheError,false));
+                ClearCollect(colOfflineStock,colAutoStockV16);Set(varAutoStockUpdated,Now());Set(varAutoStockResponse,Blank()));true,
+            Set(varAutoStockError,true);false),
+        Set(varAutoBinsError,false);
+        IfError(
+            Set(varAutoBinsResponse,PA_GetAllBinsOffline.Run());
+            ClearCollect(colAutoBinsV16,ForAll(Table(ParseJSON(Coalesce(varAutoBinsResponse.binsjson,"[]"))) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),binCode:Text(r.Value.binCode)}));
+            If(IsEmpty(colAutoBinsV16),Set(varAutoBinsError,true),
+                IfError(SaveData(colAutoBinsV16,"OfflineBins"),Set(varAutoBinsCacheError,true),Set(varAutoBinsCacheError,false));
+                ClearCollect(colOfflineBins,colAutoBinsV16);Set(varAutoBinsUpdated,Now());Clear(colAutoBinsV16);Set(varAutoBinsResponse,Blank()));true,
+            Set(varAutoBinsError,true);false),
+        If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
+        Set(varHistoryLoading,true);Set(varHistoryCloudError,false);
+        IfError(
+            Refresh(InventoryCount);
+            ClearCollect(colRestoreCloudV16,Filter(InventoryCount,Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)));
+            Set(varHistoryCloudLimit,CountRows(colRestoreCloudV16)>=5000);
+            ClearCollect(colRestoreRowsV16,ForAll(colRestoreCloudV16 As r,With({_title:If(StartsWith(r.Title,"ARCHIVED:"),Mid(r.Title,10),r.Title)},{
+                SyncKey:If(StartsWith(_title,"COUNT:"),Mid(_title,7),"SP-" & Text(r.ID)),
+                Title:_title,Archived:StartsWith(r.Title,"ARCHIVED:"),ItemNo:r.ItemNo,ItemName:r.ItemName,LocationCode:Trim(r.LocationCode),
+                OpeningBalance:IfError(Value(r.OpeningBalance),Blank()),CountQty:IfError(Value(r.CountQty),Blank()),
+                Variance:IfError(Value(r.CountQty)-Value(r.OpeningBalance),Blank()),CountDate:IfError(DateTimeValue(r.CountDate),Blank()),
+                Counter:Coalesce(r.Counter,User().FullName),OwnerEmail:varCountOwner,SharePointID:r.ID,Revision:0,SyncError:"",
+                Reason:r.Reason,Comment:r.Comment,Resolved:r.Resolved,Synced:true})));
+            ClearCollect(colHistoryMergeV16,AddColumns(colOfflineInventory,MergePriority,If(Synced,0,2)));
+            Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
+            ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
+                Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
+            ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));
+            Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
+            If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+        ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+        SaveData(colCountDiskV21,varCountCacheKey)),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+            true,
+            Set(varHistoryCloudError,true);false);
+        Set(varHistoryLoading,false)));
+        Set(varLoadedItemRows,CountRows(colOfflineItems));Set(varLoadedStockRows,CountRows(colOfflineStock));
+        If(!Coalesce(varDStockBuildingV17,false),
+        Set(varDStockBuildingV17,true);
+        With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:!Coalesce(varAutoStockError,true) && !Coalesce(varAutoItemsError,true)},
+            IfError(
+                If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);Set(varDStockReadyV17,false);
+        Set(varDStockBuiltAtV17,Blank());Clear(colDStockBaseV17);
+        If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
+            ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));Clear(colDDiskV369);
+            IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
+            With({_head:LookUp(colDDiskV369,HeaderV369=true)},
+                If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
+                    ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
+                    Set(varDStockBuiltAtV17,_head.FetchedV369);Set(varDStockReadyV17,true)));
+            Clear(colDDiskV369)));
+                If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
+                    (IsEmpty(colDStockBaseV17) || !Coalesce(varAutoStockError,true)))),
+                    ClearCollect(colDJoinV17,ForAll(If(_pair,colAutoItemsV16,colOfflineItems) As i,{JoinNo:i.number,JoinKind:0,
+                        JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+                    Collect(colDJoinV17,ForAll(Filter(If(_pair,colAutoStockV16,colOfflineStock),!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
+                        {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+                    ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+                        With({_master:LookUp(g.JoinRows,JoinKind=0)},
+                            {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+                                {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
+                                  ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+                    If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
+                        ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});Clear(colDLegacyV369);
+                        IfError(LoadData(colDLegacyV369,"DashboardStockV17",true),Clear(colDLegacyV369));
+                        Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
+                            Patch(r,{Cost:Blank()})));Clear(colDLegacyV369));
+                    ClearCollect(colDStockBaseV17,colDCandidateV369);
+                    If(_pair,Set(varDStockBuiltAtV17,Now());Set(varDStockReadyV17,true);
+        If(!IsBlank(User().EntraObjectId),
+            ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
+            Collect(colDDiskV369,colDStockBaseV17);
+            IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+            Clear(colDDiskV369))));
+                true,
+                Set(varDStockCacheErrorV17,true);false);
+            Clear(colDCandidateV369);Clear(colDJoinV17);
+            Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
+            Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
+                Blank(),Sum(colDStockBaseV17,Qty*Cost))));
+        Set(varDStockBuildingV17,false));Clear(colAutoItemsV16);Clear(colAutoStockV16);Set(varAutoDataChecked,Now());Set(varStartupSyncRunning,false);
+        Set(varCountUploadQueue,!IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)))));If(Connection.Connected,Set(varCountUploadQueue,!IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced))))
+        )
+      Width: =App.Width
+    Children:
+      - countHomeImage1:
+          Control: Image@2.2.3
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =RGBA(0,0,0,0)
+            Height: =App.Height*0.07
+            Image: ='Buuruljuut logo 3-6-03 2'
+            Width: =App.Width*0.13
+            X: =App.Width*0.04
+            Y: =App.Height*0.035
+      - countHomeLabel7:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(255, 255, 255, 1)
+            BorderStyle: =BorderStyle.None
+            Color: =ColorValue("#163D35")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Bold
+            Height: =App.Height*0.055
+            Size: =32*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Тооллогын төв"
+            Width: =App.Width*0.74
+            X: =App.Width*0.20
+            Y: =App.Height*0.035
+      - countHomeImage2:
+          Control: Image@2.2.3
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderStyle: =BorderStyle.None
+            Height: =87*App.Height/1200
+            Image: =Untitled
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =163*App.Width/640
+            X: =459*App.Width/640
+            Y: =17*App.Height/1200
+      - countHomeLabel7_4:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#687F79")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.035
+            Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Бүртгэ · зургаар баталгаажуул · хяна"
+            Width: =App.Width*0.74
+            X: =App.Width*0.20
+            Y: =App.Height*0.093
+      - countHomeButton2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =ColorValue("#246C57")
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.12
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Navigate(scrWarehouses,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =29*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="＋   Тооллого эхлэх"
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.205
+      - countHomeLabel12:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#687F79")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.035
+            Size: =14*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="АЖЛЫН ХЭСЭГ"
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.35
+      - countHomeButton2_1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.12
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Navigate('Бараа засвар хийх')
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Бараа засварлах"
+            Width: =App.Width*0.45
+            X: =App.Width*0.51
+            Y: =App.Height*0.405
+      - countHomeButton2_4:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =132*App.Height/1200
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Navigate('Master Edit')
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="✏️ Master Edit"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =225*App.Width/640
+            X: =330*App.Width/640
+            Y: =267*App.Height/1200
+      - countHomeButton2_7:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =ColorValue("#FBE7DC")
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.12
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Set(varPhotoRequestedV28,"");Set(varPhotoReturnV28,"home");Navigate(ScrItemPhotos,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Зураг авах · харах"
+            Width: =App.Width*0.45
+            X: =App.Width*0.04
+            Y: =App.Height*0.405
+      - countHomeButton2_6:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.055
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Navigate('ITEMS')
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Онлайн барааны мэдээлэл →"
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.70
+      - countHomeLabel12_1:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#163D35")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =38*App.Height/1200
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="ТАЙЛАН БА ТҮҮХ"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =580*App.Width/640
+            X: =24*App.Width/640
+            Y: =575*App.Height/1200
+      - countHomeButton2_2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.12
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: '=Navigate(ScrHistory)  '
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Тооллогын түүх"
+            Width: =App.Width*0.45
+            X: =App.Width*0.04
+            Y: =App.Height*0.55
+      - countHomeButton2_3:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.12
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Navigate('ScrReport1')
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Тооллогын тайлан"
+            Width: =App.Width*0.45
+            X: =App.Width*0.51
+            Y: =App.Height*0.55
+      - countHomeLabel12_2:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#163D35")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =57*App.Height/1200
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Файл болон санал"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =187*App.Width/640
+            X: =82*App.Width/640
+            Y: =754*App.Height/1200
+      - countHomeButton2_8:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.05
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: |-
+              =Notify(If(varStartupSyncRunning,"Мэдээлэл автоматаар шинэчлэгдэж байна…",!Connection.Connected,"Оффлайн — хадгалсан мэдээлэл ашиглаж байна.",varAutoItemsError || varAutoStockError || varAutoBinsError,"Зарим мэдээлэл татагдсангүй. Хадгалсан мэдээлэл хэвээр; дараагийн автомат шинэчлэлтээр дахин оролдоно.","Автомат шинэчлэлт: " & Text(varAutoDataChecked,"mm.dd hh:mm")) & " | Бараа " & Text(CountRows(colOfflineItems)) & ", үлдэгдэл " & Text(CountRows(colOfflineStock)) & ", тавиур " & Text(CountRows(colOfflineBins)),NotificationType.Information)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =16*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Мэдээллийн төлөв"
+            Width: =App.Width*0.45
+            X: =App.Width*0.04
+            Y: =App.Height*0.845
+      - countHomeButton2_5:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =48*App.Height/1200
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Navigate('IMPORT')
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: |-
+              ="📦 IMPORT FILE"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =233*App.Width/640
+            X: =330*App.Width/640
+            Y: =803*App.Height/1200
+      - countHomeButton5_2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.05
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Launch("mailto:" & User().Email & "?subject=Toollogo%20app%20feedback")
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =16*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Санал · тусламж"
+            Width: =App.Width*0.45
+            X: =App.Width*0.51
+            Y: =App.Height*0.845
+      - countHomeButton5:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderStyle: =BorderStyle.None
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(151, 0, 0, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: |-
+              =If(Connection.Connected && varCountCacheReady && !Coalesce(varCountSyncBusy,false) && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)),DisplayMode.Edit,DisplayMode.Disabled)
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.06
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: |-
+              =// V27 durable upload: CountKeyV27 is unique in SharePoint.
+              If(Connection.Connected && varCountCacheReady &&
+               !Coalesce(varCountSyncBusy,false) && !Coalesce(varCountSaving,false) &&
+               !Coalesce(varHistoryLoading,false) && varCountOwner=Lower(Trim(User().Email)) &&
+               !IsBlank(varCountOwner) && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) &&
+               (IsBlank(varCountRetryAtV27) || Now()>=varCountRetryAtV27),
+              Set(varCountSyncBusy,true);
+              IfError(
+              ClearCollect(colToSync,FirstN(SortByColumns(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced),"SyncError",SortOrder.Ascending),25));
+              If(!IsEmpty(colToSync),
+              ForAll(colToSync As rec,
+                  IfError(
+                      With({_existing:With({_rowID:rec.SharePointID,_rowTitle:rec.Title,_archivedTitle:"ARCHIVED:" & rec.Title,_oldCounter:User().FullName},If(_rowID>0,With({_byID:LookUp(InventoryCount,ID=_rowID)},If(_byID.Counter=varCountOwner || (_byID.Counter=_oldCounter && _byID.'Created By'.Email=varCountOwner),_byID,Blank())),Coalesce(LookUp(InventoryCount,CountKeyV27=rec.SyncKey && Counter=varCountOwner),LookUp(InventoryCount,Title=_rowTitle && Counter=varCountOwner),LookUp(InventoryCount,Title=_archivedTitle && Counter=varCountOwner))))},
+                          With({_saved:Patch(InventoryCount,If(IsBlank(_existing.ID),Defaults(InventoryCount),_existing),{
+                              CountKeyV27:rec.SyncKey,Title:If(Coalesce(rec.Archived,false),"ARCHIVED:" & rec.Title,rec.Title),ItemNo:rec.ItemNo,ItemName:rec.ItemName,LocationCode:rec.LocationCode,
+                              OpeningBalance:rec.OpeningBalance,CountQty:rec.CountQty,Variance:rec.CountQty-rec.OpeningBalance,
+                              CountDate:rec.CountDate,Counter:rec.OwnerEmail,Reason:rec.Reason,Comment:rec.Comment,Resolved:rec.Resolved})},
+                              If(IsBlank(_saved.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер мөрийн ID баталгаажуулсангүй."}),
+                                  Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+                                      {SharePointID:_saved.ID,SyncError:"",Synced:LookUp(colOfflineInventory,SyncKey=rec.SyncKey,Revision)=rec.Revision}));
+                              true
+                          )
+                      ),
+                      Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+                          {Synced:false,SyncError:FirstError.Message});false
+                  )
+              );
+              );
+              IfError(
+               If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Эх хадгалалтыг аюулгүй уншаагүй байна."}),
+               ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+               SaveData(colCountDiskV21,varCountCacheKey)),
+               Set(varCountStorageError,FirstError.Message),Set(varCountStorageError,""));
+              Set(varCountRemainingV27,CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+              If(!IsEmpty(Filter(colToSync As q,!IsBlank(LookUp(colOfflineInventory,SyncKey=q.SyncKey,SyncError)))),
+               Set(varCountRetryCountV27,Min(5,Coalesce(varCountRetryCountV27,0)+1));
+               Set(varCountRetryAtV27,DateAdd(Now(),Min(300,15*Power(2,varCountRetryCountV27-1)),TimeUnit.Seconds)),
+               Set(varCountRetryCountV27,0);Set(varCountRetryAtV27,Now()));
+              Set(varCountUploadQueue,varCountRemainingV27>0),
+               Set(varCountStorageError,FirstError.Message);
+               Set(varCountRetryAtV27,DateAdd(Now(),60,TimeUnit.Seconds)));
+              Set(varCountSyncBusy,false))
+              
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =16*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: |-
+              =If(varCountSyncBusy,"Автоматаар илгээж байна…",!Connection.Connected,"Оффлайн · илгээх " & CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) & " мөр",IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)),"SharePoint-д илгээгдсэн · тооллого хадгалагдсан","Автоматаар илгээх " & CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) & " мөр")
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.77
+      - countHomeLabel7_2:
+          Control: Label@2.5.1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#687F79")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.035
+            Size: =16*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =User().FullName & "  ·  " & Text(Today(),"mm.dd")
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.15
+      - countHomeImage3:
+          Control: Image@2.2.3
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Height: =112*App.Height/1200
+            Image: ='911787850'
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =216*App.Width/640
+            X: =60*App.Width/640
+            Y: =1024*App.Height/1200
+      - countHomeLabel7_3:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#163D35")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =36*App.Height/1200
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: |-
+              ="Огноо: " & Text(Today(),"yyyy-mm-dd")
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =592*App.Width/640
+            X: =24*App.Width/640
+            Y: =1005*App.Height/1200
+      - countHomeBack:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varRptSending || varRptPdfPending,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.055
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Navigate(нүүр,ScreenTransition.Fade)
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =19*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="‹ Үндсэн нүүр"
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.925
+      - uploadQueueV16_10:
+          Control: Timer@2.1.0
+          Properties:
+            OnTimerStart: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+              )
+            AutoPause: =false
+            AutoStart: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),true
+              )
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            Duration: =5000
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(4)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =1
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnTimerEnd: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),// V27 durable upload: CountKeyV27 is unique in SharePoint.
+              If(Connection.Connected && varCountCacheReady &&
+               !Coalesce(varCountSyncBusy,false) && !Coalesce(varCountSaving,false) &&
+               !Coalesce(varHistoryLoading,false) && varCountOwner=Lower(Trim(User().Email)) &&
+               !IsBlank(varCountOwner) && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) &&
+               (IsBlank(varCountRetryAtV27) || Now()>=varCountRetryAtV27),
+              Set(varCountSyncBusy,true);
+              IfError(
+              ClearCollect(colToSync,FirstN(SortByColumns(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced),"SyncError",SortOrder.Ascending),25));
+              If(!IsEmpty(colToSync),
+              ForAll(colToSync As rec,
+                  IfError(
+                      With({_existing:With({_rowID:rec.SharePointID,_rowTitle:rec.Title,_archivedTitle:"ARCHIVED:" & rec.Title,_oldCounter:User().FullName},If(_rowID>0,With({_byID:LookUp(InventoryCount,ID=_rowID)},If(_byID.Counter=varCountOwner || (_byID.Counter=_oldCounter && _byID.'Created By'.Email=varCountOwner),_byID,Blank())),Coalesce(LookUp(InventoryCount,CountKeyV27=rec.SyncKey && Counter=varCountOwner),LookUp(InventoryCount,Title=_rowTitle && Counter=varCountOwner),LookUp(InventoryCount,Title=_archivedTitle && Counter=varCountOwner))))},
+                          With({_saved:Patch(InventoryCount,If(IsBlank(_existing.ID),Defaults(InventoryCount),_existing),{
+                              CountKeyV27:rec.SyncKey,Title:If(Coalesce(rec.Archived,false),"ARCHIVED:" & rec.Title,rec.Title),ItemNo:rec.ItemNo,ItemName:rec.ItemName,LocationCode:rec.LocationCode,
+                              OpeningBalance:rec.OpeningBalance,CountQty:rec.CountQty,Variance:rec.CountQty-rec.OpeningBalance,
+                              CountDate:rec.CountDate,Counter:rec.OwnerEmail,Reason:rec.Reason,Comment:rec.Comment,Resolved:rec.Resolved})},
+                              If(IsBlank(_saved.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер мөрийн ID баталгаажуулсангүй."}),
+                                  Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+                                      {SharePointID:_saved.ID,SyncError:"",Synced:LookUp(colOfflineInventory,SyncKey=rec.SyncKey,Revision)=rec.Revision}));
+                              true
+                          )
+                      ),
+                      Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+                          {Synced:false,SyncError:FirstError.Message});false
+                  )
+              );
+              );
+              IfError(
+               If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Эх хадгалалтыг аюулгүй уншаагүй байна."}),
+               ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+               SaveData(colCountDiskV21,varCountCacheKey)),
+               Set(varCountStorageError,FirstError.Message),Set(varCountStorageError,""));
+              Set(varCountRemainingV27,CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+              If(!IsEmpty(Filter(colToSync As q,!IsBlank(LookUp(colOfflineInventory,SyncKey=q.SyncKey,SyncError)))),
+               Set(varCountRetryCountV27,Min(5,Coalesce(varCountRetryCountV27,0)+1));
+               Set(varCountRetryAtV27,DateAdd(Now(),Min(300,15*Power(2,varCountRetryCountV27-1)),TimeUnit.Seconds)),
+               Set(varCountRetryCountV27,0);Set(varCountRetryAtV27,Now()));
+              Set(varCountUploadQueue,varCountRemainingV27>0),
+               Set(varCountStorageError,FirstError.Message);
+               Set(varCountRetryAtV27,DateAdd(Now(),60,TimeUnit.Seconds)));
+              Set(varCountSyncBusy,false))
+              
+              )
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            Repeat: =true
+            Reset: =!varRptPdfPending
+            Size: =Max(12,(13)*(Min(Min(App.Width,960)/640,App.Height/1136)))
+            Start: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Connection.Connected && varCountCacheReady
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =1
+      - pgDenied290:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =Max(12,(Parent.Width-320)/2)
+            Y: |-
+              =Max(12,(Parent.Height-76)/2)
+            Width: |-
+              =Min(320,Parent.Width-24)
+            Height: |-
+              =76
+            Size: |-
+              =14
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Энэ хуудасны эрх холбогдоогүй · Профайл"
+            Visible: |-
+              =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)

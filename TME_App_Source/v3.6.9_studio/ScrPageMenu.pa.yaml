@@ -1,0 +1,516 @@
+Screens:
+  ScrPageMenu:
+    Properties:
+      OnVisible: |-
+        =Set(pgAccess,Blank());If(Connection.Connected,IfError(Refresh(AssetUserAccess);Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())))
+      Fill: |-
+        =ColorValue("#F5F4F1")
+      Height: |-
+        =App.Height
+      Width: |-
+        =App.Width
+    Children:
+      - pgMenuTitle:
+          Control: Label@2.5.1
+          Properties:
+            X: |-
+              =16
+            Y: |-
+              =12
+            Width: |-
+              =Parent.Width-32
+            Height: |-
+              =50
+            Size: |-
+              =22
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            Text: |-
+              ="Миний хуудсууд"
+            FontWeight: |-
+              =FontWeight.Bold
+      - pgMenu0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(0,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+0*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Нүүр"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|home|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('нүүр',ScreenTransition.Fade)
+      - pgMenu1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(1,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+0*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Тооллого"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('ScrCountHome',ScreenTransition.Fade)
+      - pgMenu2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(2,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+1*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Агуулах"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('Screen1',ScreenTransition.Fade)
+      - pgMenu3:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(3,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+1*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Зарлага"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))
+            OnSelect: |-
+              =Navigate('ScrIssueA25Test',ScreenTransition.Fade)
+      - pgMenu4:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(4,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+2*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Камер ба барааны зураг"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('ScrCameraSearch',ScreenTransition.Fade)
+      - pgMenu5:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(5,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+2*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Dashboard"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|dashboard|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('ScrDashboard',ScreenTransition.Fade)
+      - pgMenu6:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(6,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+3*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Тооллогын түүх"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|history|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('ScrHistory',ScreenTransition.Fade)
+      - pgMenu7:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(7,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+3*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Миний тайлан"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|report|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('ScrReport1',ScreenTransition.Fade)
+      - pgMenu8:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(8,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+4*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Нэгдсэн тайлан"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('ScrCombined',ScreenTransition.Fade)
+      - pgMenu9:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(9,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+4*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Бараа засах"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('Master Edit',ScreenTransition.Fade)
+      - pgMenu10:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16+Mod(10,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+5*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Синк"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Navigate('ScrSync',ScreenTransition.Fade)
+      - pgMenu11:
+          Control: Classic/Button@2.2.0
+          Properties:
+            AccessibleLabel: |-
+              ="Админ · Хэрэглэгч ба эрх"
+            X: |-
+              =16+Mod(11,2)*(Parent.Width-24)/2
+            Y: |-
+              =74+5*Min(56,(Parent.Height-160)/6)
+            Width: |-
+              =(Parent.Width-40)/2
+            Height: |-
+              =Min(48,(Parent.Height-165)/6)
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Админ · Эрх"
+            Visible: |-
+              =(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|admin|" in pgAccess.Title))
+            OnSelect: |-
+              =Navigate('ScrPageAdmin',ScreenTransition.Fade)
+      - pgMenuBack:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =16
+            Y: |-
+              =Parent.Height-52
+            Width: |-
+              =112
+            Height: |-
+              =42
+            Size: |-
+              =14
+            Color: |-
+              =ColorValue("#242528")
+            Fill: |-
+              =ColorValue("#FFFFFF")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Буцах"
+            OnSelect: |-
+              =Back()

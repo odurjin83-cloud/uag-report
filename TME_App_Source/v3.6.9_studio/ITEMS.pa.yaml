@@ -1,0 +1,1424 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ITEMS:
+    Properties:
+      OnVisible: |-
+        =Set(pgAccess,Blank());If(Connection.Connected,IfError(Refresh(AssetUserAccess);Set(pgAccess,LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=Lower(User().Email))),Set(pgAccess,Blank())));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+        )
+      Fill: =RGBA(255,255,255,1)
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      Width: =App.Width
+    Children:
+      - BarcodeReader1:
+          Control: BarcodeReader@1.0.25
+          Group: Бар код уншигч
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderFillColor: =RGBA(9, 33, 98, 1)
+            FillColor: =RGBA(9, 33, 98, 1)
+            FontSize: =24
+            Height: =(63)*((App.Height/1136))
+            OnScan: |-
+              =Set(
+                  varItem,
+                  LookUp(
+                      'items (v2.0)',
+                      number = First(Self.Barcodes).Value
+                  )
+              );
+              Set(
+                  varOpeningBalance,
+                  LookUp(
+                      'itemLedgerEntries (microsoft/analytics/v1.0)',
+                      'Item No.' = First(Self.Barcodes).Value
+                  ).Quantity
+              );
+              Set(varJustSelected, true);
+              Set(varBarcodeText, First(Self.Barcodes).Value);
+              Reset(txtSearch)
+            Text: ="Код уншигч"
+            TextColor: =RGBA(241, 244, 249, 1)
+            Width: =(608)*((App.Width/640))
+            X: =(17)*((App.Width/640))
+            Y: =(9)*((App.Height/1136))
+      - Icon12:
+          Control: Classic/Icon@2.5.0
+          Group: Бар код уншигч
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            Fill: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(50)*((App.Height/1136))
+            Icon: =Icon.Home
+            OnSelect: =Navigate('нүүр')
+            Width: =(43)*((App.Width/640))
+            X: =(576)*((App.Width/640))
+            Y: =(12)*((App.Height/1136))
+      - Icon5:
+          Control: Classic/Icon@2.5.0
+          Group: Бар код уншигч
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(43)*((App.Height/1136))
+            Icon: =Icon.ArrowLeft
+            OnSelect: |-
+              =
+              Navigate(
+                  нүүр,
+                  ScreenTransition.CoverRight
+              )
+            Width: =(38)*((App.Width/640))
+            X: =(27)*((App.Width/640))
+            Y: =(14)*((App.Height/1136))
+      - Container2_2:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Height: =(315)*((App.Height/1136))
+            PaddingBottom: =(0)*((App.Height/1136))
+            PaddingLeft: =(0)*((App.Width/640))
+            PaddingRight: =(0)*((App.Width/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            RadiusBottomLeft: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(4)*(Min(App.Width/640,App.Height/1136))
+            Width: =(607)*((App.Width/640))
+            X: =(18)*((App.Width/640))
+            Y: =(706)*((App.Height/1136))
+          Children:
+            - Rectangle2_2:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: =RGBA(9, 33, 98, 1)
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(40)*((App.Height/1136))
+                  Width: =(206)*((App.Width/640))
+                  X: =(378)*((App.Width/640))
+                  Y: =(36)*((App.Height/1136))
+      - Container2:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Height: =(129)*((App.Height/1136))
+            RadiusBottomLeft: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(4)*(Min(App.Width/640,App.Height/1136))
+            Width: =(607)*((App.Width/640))
+            X: =(18)*((App.Width/640))
+            Y: =(87)*((App.Height/1136))
+      - Container6:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Group: Group1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(109, 49, 162, 1)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(90)*((App.Height/1136))
+            RadiusBottomLeft: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(4)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(4)*(Min(App.Width/640,App.Height/1136))
+            Width: =(127)*((App.Width/640))
+            X: =(437)*((App.Width/640))
+            Y: =(585)*((App.Height/1136))
+      - galSuggestions:
+          Control: Gallery@2.15.0
+          Variant: BrowseLayout_Vertical_OneTextVariant_ver5.0
+          Group: Хайх
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =RGBA(9, 33, 98, 1)
+            Height: |-
+              =(If(
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText,
+                  42,
+                  300
+              ))*((App.Height/1136))
+            Items: |-
+              =If(
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText,
+
+                  FirstN(
+                      Filter(
+                          'items (v2.0)',
+                          number = varBarcodeText
+                      ),
+                      1
+                  ),
+
+                  FirstN(
+                      Filter(
+                          'items (v2.0)',
+                          txtSearch.Text in number ||
+                          txtSearch.Text in 'Display Name'
+                      ),
+                      30
+                  )
+              )
+            OnSelect: |-
+              =Set(varJustSelected, true);
+              Set(varItem, ThisItem);
+              Set(varBarcodeText, ThisItem.number);
+
+              Set(
+                  varOpeningBalance,
+                  LookUp(
+                      'itemLedgerEntries (microsoft/analytics/v1.0)',
+                      'Item No.' = ThisItem.number
+                  ).Quantity
+              );
+
+              Set(varNewPicture, Blank());
+
+              IfError(
+                  Set(
+                      varItemPicture,
+                      'PowerAppV2->Compose,Findonerecord(V3),Getanimage,fileordo...'.Run(
+                          ThisItem.number
+                      ).picture
+                  ),
+                  Set(varItemPicture, Blank())
+              )
+            TemplatePadding: =(0)*((App.Height/1136))
+            TemplateSize: =(42)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (Len(txtSearch.Text) > 0)
+            Width: =(538)*((App.Width/640))
+            X: =(56)*((App.Width/640))
+            Y: =(159)*((App.Height/1136))
+          Children:
+            - Title1:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(255, 255, 255, 1)
+                  Color: =RGBA(255, 255, 255, 1)
+                  Fill: =RGBA(9, 33, 98, 1)
+                  Font: =Font.'Open Sans'
+                  FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+                  Height: =(21)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(0)*((App.Height/1136))
+                  PaddingLeft: =(0)*((App.Width/640))
+                  PaddingRight: =(0)*((App.Width/640))
+                  PaddingTop: =(0)*((App.Height/1136))
+                  Size: =(10)*(Min(App.Width/640,App.Height/1136))
+                  Text: =ThisItem.number & " - " & Left(ThisItem.'Display Name', 30)
+                  VerticalAlign: =VerticalAlign.Top
+                  Width: =((Parent.TemplateWidth/((App.Width/640))) - 86)*((App.Width/640))
+                  X: =(16)*((App.Width/640))
+                  Y: =(8)*((App.Height/1136))
+            - Rectangle1:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: =RGBA(131, 24, 75, 1)
+                  Height: =((Parent.TemplateHeight/((App.Height/1136))) - (Separator1.Height/((App.Height/1136))))*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Visible: =ThisItem.IsSelected
+                  Width: =(4)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(0)*((App.Height/1136))
+            - NextArrow1:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: =Self.Tooltip
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =RGBA(166, 166, 166, 1)
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(50)*((App.Height/1136))
+                  Icon: =Icon.ChevronRight
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(12)*((App.Height/1136))
+                  PaddingLeft: =(12)*((App.Width/640))
+                  PaddingRight: =(12)*((App.Width/640))
+                  PaddingTop: =(12)*((App.Height/1136))
+                  Tooltip: ="View item details"
+                  Width: =(50)*((App.Width/640))
+                  X: =((Parent.TemplateWidth/((App.Width/640))) - (Self.Width/((App.Width/640))) - 12)*((App.Width/640))
+                  Y: =(((Parent.TemplateHeight/((App.Height/1136))) / 2) - ((Self.Height/((App.Height/1136))) / 2))*((App.Height/1136))
+            - Separator1:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Fill: =RGBA(255, 255, 255, 1)
+                  Height: =(8)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Width: =((Parent.TemplateWidth/((App.Width/640))))*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =((Parent.TemplateHeight/((App.Height/1136))) - (Self.Height/((App.Height/1136))))*((App.Height/1136))
+      - txtCountQty:
+          Control: Classic/TextInput@2.3.2
+          Group: Тоолох тоо, хадгалах
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Default: =""
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Format: =TextFormat.Number
+            Height: =(55)*((App.Height/1136))
+            HintText: ="""Тоолох тоо оруулна уу"""
+            HoverBorderColor: =RGBA(131, 24, 75, 1)
+            HoverFill: =RGBA(255, 211, 205, 1)
+            RadiusBottomLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Width: =(569)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(885)*((App.Height/1136))
+      - Label3_5:
+          Control: Label@2.5.1
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(30)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="📦 Агуулахын үлдэгдэл:"
+            Width: =(249)*((App.Width/640))
+            X: =(38)*((App.Width/640))
+            Y: =(750)*((App.Height/1136))
+      - Label8_5:
+          Control: Label@2.5.1
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Bold
+            Height: =(32)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(24)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) || IsBlank(varItem),
+                  "-",
+                  Text(
+                      LookUp(
+                          'items (v2.0)',
+                          ThisRecord.number = varItem.number
+                      ).inventory,
+                      "#,##0"
+                  )
+              )
+            Width: =(167)*((App.Width/640))
+            X: =(433)*((App.Width/640))
+            Y: =(748)*((App.Height/1136))
+      - txtSearch:
+          Control: Classic/TextInput@2.3.2
+          Group: Хайх
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Default: =varBarcodeText
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(48)*((App.Height/1136))
+            HintText: ="Код оруулж хайх..."
+            HoverBorderColor: =RGBA(131, 24, 75, 1)
+            HoverFill: =RGBA(255, 211, 205, 1)
+            OnChange: "=If(\r\n    varJustSelected,\r\n    false,\r\n    \r\n    With(\r\n        {\r\n            found:\r\n                LookUp(\r\n                    'items (v2.0)',\r\n                    number = txtSearch.Text\r\n                )\r\n        },\r\n        If(\r\n            IsBlank(Trim(txtSearch.Text)) || IsBlank(found),\r\n\r\n            Set(varItem, Blank());\r\n            Set(varOpeningBalance, Blank()),\r\n\r\n            Set(varItem, found);\r\n            Set(\r\n                varOpeningBalance,\r\n                LookUp(\r\n                    'itemLedgerEntries (microsoft/analytics/v1.0)',\r\n                    'Item No.' = found.number\r\n                ).Quantity\r\n            )\r\n        )\r\n    )\r\n)"
+            RadiusBottomLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Width: =(537)*((App.Width/640))
+            X: =(56)*((App.Width/640))
+            Y: =(111)*((App.Height/1136))
+      - Label3:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(39)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Барааны Нэр"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(135)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(258)*((App.Height/1136))
+      - Label3_1:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(34)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Барааны Код"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(251)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(297)*((App.Height/1136))
+      - Label3_2:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(14)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Барааны төрөл"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(271)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(338)*((App.Height/1136))
+      - Label3_3:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(26)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Байршил"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(271)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(364)*((App.Height/1136))
+      - Label8:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(36)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(Max(8, Min(16, 16 - (Len(varItem.'Display Name') - 10) * 0.15)))*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) || IsBlank(varItem),
+                  "-",
+                  varItem.'Display Name'
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(332)*((App.Width/640))
+            X: =(273)*((App.Width/640))
+            Y: =(258)*((App.Height/1136))
+      - Label8_2:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(28)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(10)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) || IsBlank(varItem),
+                  "-",
+                  varItem.'Type'
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(168)*((App.Width/640))
+            X: =(437)*((App.Width/640))
+            Y: =(327)*((App.Height/1136))
+      - Label8_3:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(26)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(10)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) || IsBlank(varItem),
+                  "-",
+                  LookUp(
+                      'itemLedgerEntries (microsoft/analytics/v1.0)',
+                      'Item No.' = varItem.number
+                  ).'Location Code'
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(168)*((App.Width/640))
+            X: =(437)*((App.Width/640))
+            Y: =(359)*((App.Height/1136))
+      - Label8_4:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(27)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(10)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) || IsBlank(varItem),
+                  "-",
+                  LookUp(
+                      'itemLedgerEntries (microsoft/analytics/v1.0)',
+                      'Item No.' = varItem.number
+                  ).'Unit of Measure Code'
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(168)*((App.Width/640))
+            X: =(437)*((App.Width/640))
+            Y: =(389)*((App.Height/1136))
+      - Label9:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(30)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(18)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="📋 Барааны мэдээлэл"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(327)*((App.Width/640))
+            X: =(30)*((App.Width/640))
+            Y: =(228)*((App.Height/1136))
+      - Rectangle3:
+          Control: Rectangle@2.3.0
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(1)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(564)*((App.Width/640))
+            X: |-
+              =(41
+              )*((App.Width/640))
+            Y: =(294)*((App.Height/1136))
+      - Rectangle3_1:
+          Control: Rectangle@2.3.0
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(1)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(564)*((App.Width/640))
+            X: =(41)*((App.Width/640))
+            Y: =(327)*((App.Height/1136))
+      - Rectangle3_2:
+          Control: Rectangle@2.3.0
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(1)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(564)*((App.Width/640))
+            X: =(41)*((App.Width/640))
+            Y: =(359)*((App.Height/1136))
+      - Rectangle3_3:
+          Control: Rectangle@2.3.0
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(1)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(564)*((App.Width/640))
+            X: =(41)*((App.Width/640))
+            Y: =(389)*((App.Height/1136))
+      - Rectangle3_4:
+          Control: Rectangle@2.3.0
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(1)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(564)*((App.Width/640))
+            X: =(41)*((App.Width/640))
+            Y: =(418)*((App.Height/1136))
+      - Label3_4:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(20)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Tавиур"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(271)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(394)*((App.Height/1136))
+      - Rectangle2:
+          Control: Rectangle@2.3.0
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(40)*((App.Height/1136))
+            Width: =(206)*((App.Width/640))
+            X: =(396)*((App.Width/640))
+            Y: =(788)*((App.Height/1136))
+      - Label3_6:
+          Control: Label@2.5.1
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(37)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="✅ Тоологдсон тоо"
+            Width: =(235)*((App.Width/640))
+            X: =(38)*((App.Width/640))
+            Y: =(791)*((App.Height/1136))
+      - Label3_7:
+          Control: Label@2.5.1
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Bold
+            Height: =(36)*((App.Height/1136))
+            OnSelect: =
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(24)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(varItem) || CountRows(Filter(InventoryCount, ItemNo = varItem.number)) = 0,
+                  "-",
+                  Text(
+                      Sum(
+                          Filter(
+                              InventoryCount,
+                              ItemNo = varItem.number
+                          ),
+                          CountQty
+                      ),
+                      "#,##0"
+                  )
+              )
+            Width: =(192)*((App.Width/640))
+            X: =(408)*((App.Width/640))
+            Y: =(791)*((App.Height/1136))
+      - Button1:
+          Control: Classic/Button@2.2.0
+          Group: Тоолох тоо, хадгалах
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(58)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: =Notify("Тооллого бүртгэхдээ агуулахаа сонгож, нэгдсэн тооллогын дэлгэцийг ашиглана уу.",NotificationType.Information);Navigate(scrWarehouses,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(24)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Хадгалах"
+            Width: =(569)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(951)*((App.Height/1136))
+      - Label9_1:
+          Control: Label@2.5.1
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(38)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(18)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="📊 Тооллогын мэдээлэл"
+            Width: =(484)*((App.Width/640))
+            X: =(32)*((App.Width/640))
+            Y: =(706)*((App.Height/1136))
+      - Label10:
+          Control: Label@2.5.1
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(30)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="🔢 Тооллого Зөрүү"
+            Width: =(249)*((App.Width/640))
+            X: =(38)*((App.Width/640))
+            Y: =(838)*((App.Height/1136))
+      - Icon13:
+          Control: Classic/Icon@2.5.0
+          Group: Group1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(109, 49, 162, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(44)*((App.Height/1136))
+            Icon: =Icon.Save
+            OnSelect: "=Set(\r\n    varUploadPicture,\r\n    Substitute(\r\n        JSON(\r\n            Image8.Image,\r\n            JSONFormat.IncludeBinaryData\r\n        ),\r\n        \"\"\"\",\r\n        \"\"\r\n    )\r\n);\r\n\r\nIf(\r\n    StartsWith(varUploadPicture, \"data:image\"),\r\n    \r\n    IfError(\r\n        'PowerAppV2->Getrecord(V3)'.Run(\r\n            varItem.number,\r\n            varUploadPicture\r\n        ),\r\n        \r\n        Notify(\r\n            \"Зураг хадгалахад алдаа гарлаа\",\r\n            NotificationType.Error\r\n        ),\r\n        \r\n        Notify(\r\n            \"Зураг BC-д амжилттай хадгалагдлаа\",\r\n            NotificationType.Success\r\n        )\r\n    ),\r\n    \r\n    Notify(\r\n        \"Зураг Base64 формат руу хөрвөөгүй байна\",\r\n        NotificationType.Error\r\n    )\r\n)"
+            Width: =(52)*((App.Width/640))
+            X: =(473)*((App.Width/640))
+            Y: =(591)*((App.Height/1136))
+      - Image8:
+          Control: Image@2.2.3
+          Group: Group1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(194)*((App.Height/1136))
+            Image: |-
+              =If(
+                  !IsBlank(varNewPicture),
+                  varNewPicture,
+                  varItemPicture
+              )
+            OnSelect: |-
+              =If(
+                  !IsBlank(varNewPicture),
+                  varNewPicture,
+                  varItemPicture
+              )
+            PaddingBottom: =(0)*((App.Height/1136))
+            PaddingLeft: =(0)*((App.Width/640))
+            PaddingRight: =(0)*((App.Width/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+            Width: =(307)*((App.Width/640))
+            X: =(63)*((App.Width/640))
+            Y: =(481)*((App.Height/1136))
+      - AddMediaButton2:
+          Control: AddMedia@2.2.1
+          Group: Group1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Right
+            BorderColor: =RGBA(111,73,224,1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            ChangePictureText: ="ЗУРАГ АВАХ"
+            Color: =Color.White
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(49)*((App.Height/1136))
+            OnChange: =Set(varNewPicture, AddMediaButton2.Media)
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="ЗУРАГ АВАХ"
+            Width: =(111)*((App.Width/640))
+            X: =(444)*((App.Width/640))
+            Y: =(525)*((App.Height/1136))
+      - Icon16:
+          Control: Classic/Icon@2.5.0
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(131, 24, 75, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(44)*((App.Height/1136))
+            Icon: =Icon.History
+            Width: =(32)*((App.Width/640))
+            X: =(211)*((App.Width/640))
+            Y: =(1036)*((App.Height/1136))
+      - Icon16_1:
+          Control: Classic/Icon@2.5.0
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(131, 24, 75, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(44)*((App.Height/1136))
+            Icon: =Icon.TrendingUpwards
+            PaddingBottom: =(0)*((App.Height/1136))
+            PaddingLeft: =(0)*((App.Width/640))
+            PaddingRight: =(0)*((App.Width/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            Width: =(32)*((App.Width/640))
+            X: =(375)*((App.Width/640))
+            Y: =(1036)*((App.Height/1136))
+      - Icon16_2:
+          Control: Classic/Icon@2.5.0
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(131, 24, 75, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(44)*((App.Height/1136))
+            Icon: =Icon.Settings
+            PaddingBottom: =(0)*((App.Height/1136))
+            PaddingLeft: =(0)*((App.Width/640))
+            PaddingRight: =(0)*((App.Width/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            Width: =(32)*((App.Width/640))
+            X: =(549)*((App.Width/640))
+            Y: =(1036)*((App.Height/1136))
+      - Icon16_3:
+          Control: Classic/Icon@2.5.0
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(131, 24, 75, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(44)*((App.Height/1136))
+            Icon: =Icon.Scan
+            PaddingBottom: =(0)*((App.Height/1136))
+            PaddingLeft: =(0)*((App.Width/640))
+            PaddingRight: =(0)*((App.Width/640))
+            PaddingTop: =(0)*((App.Height/1136))
+            Width: =(32)*((App.Width/640))
+            X: =(55)*((App.Width/640))
+            Y: =(1036)*((App.Height/1136))
+      - Label17:
+          Control: Label@2.5.1
+          Group: Group1
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(109, 49, 162, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(49)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="ЗУРАГ UPLOAD"
+            Width: =(143)*((App.Width/640))
+            X: =(421)*((App.Width/640))
+            Y: =(629)*((App.Height/1136))
+      - Label18:
+          Control: Label@2.5.1
+          Group: Тооллого мэдээлэл
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: |-
+              =If(
+                  IsBlank(varItem),
+                  RGBA(100,100,100,1),
+                  With(
+                      {
+                          openingQty:
+                              LookUp(
+                                  'itemLedgerEntries (microsoft/analytics/v1.0)',
+                                  'Item No.' = varItem.number
+                              ).Quantity,
+                          countedQty:
+                              Sum(
+                                  Filter(
+                                      InventoryCount,
+                                      ItemNo = varItem.number
+                                  ),
+                                  CountQty
+                              )
+                      },
+                      With(
+                          {
+                              diff: countedQty - openingQty
+                          },
+                          If(
+                              diff = 0,
+                              RGBA(22,163,74,1),
+                              diff > 0,
+                              RGBA(217,119,6,1),
+                              RGBA(220,38,38,1)
+                          )
+                      )
+                  )
+              )
+            Fill: |-
+              =If(
+                  IsBlank(varItem),
+                  RGBA(245,245,245,1),
+                  With(
+                      {
+                          openingQty:
+                              LookUp(
+                                  'itemLedgerEntries (microsoft/analytics/v1.0)',
+                                  'Item No.' = varItem.number
+                              ).Quantity,
+                          countedQty:
+                              Sum(
+                                  Filter(
+                                      InventoryCount,
+                                      ItemNo = varItem.number
+                                  ),
+                                  CountQty
+                              )
+                      },
+                      With(
+                          {
+                              diff: countedQty - openingQty
+                          },
+                          If(
+                              diff = 0,
+                              RGBA(220,252,231,1),
+                              diff > 0,
+                              RGBA(255,243,205,1),
+                              RGBA(254,226,226,1)
+                          )
+                      )
+                  )
+              )
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Bold
+            Height: =(39)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) ||
+                  IsBlank(varItem) ||
+                  CountRows(
+                      Filter(
+                          InventoryCount,
+                          ItemNo = varItem.number
+                      )
+                  ) = 0,
+                  "-",
+                  With(
+                      {
+                          openingQty:
+                              LookUp(
+                                  'itemLedgerEntries (microsoft/analytics/v1.0)',
+                                  'Item No.' = varItem.number
+                              ).Quantity,
+
+                          countedQty:
+                              Sum(
+                                  Filter(
+                                      InventoryCount,
+                                      ItemNo = varItem.number
+                                  ),
+                                  CountQty
+                              )
+                      },
+                      With(
+                          {
+                              diff: countedQty - openingQty
+                          },
+                          If(
+                              diff > 0,
+                              "+" & Text(diff, "#,##0"),
+                              Text(diff, "#,##0")
+                          )
+                      )
+                  )
+              )
+            Width: =(206)*((App.Width/640))
+            X: =(396)*((App.Width/640))
+            Y: =(833)*((App.Height/1136))
+      - Label19_2:
+          Control: Label@2.5.1
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Center
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(38)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(16)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Тайлан"
+            Width: =(87)*((App.Width/640))
+            X: =(346)*((App.Width/640))
+            Y: =(1080)*((App.Height/1136))
+      - Label19:
+          Control: Label@2.5.1
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Center
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(38)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(16)*(Min(App.Width/640,App.Height/1136))
+            Text: ="theme"
+            Width: =(97)*((App.Width/640))
+            X: =(24)*((App.Width/640))
+            Y: =(1080)*((App.Height/1136))
+      - Label19_1:
+          Control: Label@2.5.1
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Center
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(38)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(16)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Түүх"
+            Width: =(77)*((App.Width/640))
+            X: =(187)*((App.Width/640))
+            Y: =(1080)*((App.Height/1136))
+      - Label19_3:
+          Control: Label@2.5.1
+          Group: хуудас шилжих
+          Properties:
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Align: =Align.Center
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(38)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(16)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Тохиргоо"
+            Width: =(120)*((App.Width/640))
+            X: =(504)*((App.Width/640))
+            Y: =(1080)*((App.Height/1136))
+      - Rectangle3_5:
+          Control: Rectangle@2.3.0
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(204, 231, 246, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(1)*((App.Height/1136))
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(564)*((App.Width/640))
+            X: =(40)*((App.Width/640))
+            Y: =(445)*((App.Height/1136))
+      - Label8_1:
+          Control: Label@2.5.1
+          Group: Барааны мэдээлэл
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Bold
+            Height: =(33)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(14)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) || IsBlank(varItem),
+                  "-",
+                  varItem.number
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(167)*((App.Width/640))
+            X: =(438)*((App.Width/640))
+            Y: =(297)*((App.Height/1136))
+      - Label3_25:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(14)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(12)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Хэмжих нэгж"
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(271)*((App.Width/640))
+            X: =(36)*((App.Width/640))
+            Y: =(425)*((App.Height/1136))
+      - Label8_23:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(9, 33, 98, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =(27)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(10)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(Trim(txtSearch.Text)) || IsBlank(varItem),
+                  "-",
+                  LookUp(
+                      'itemLedgerEntries (microsoft/analytics/v1.0)',
+                      'Item No.' = varItem.number
+                  ).'Unit of Measure Code'
+              )
+            Visible: |-
+              =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(Trim(txtSearch.Text)) ||
+              (
+                  varJustSelected &&
+                  txtSearch.Text = varBarcodeText
+              ))
+            Width: =(168)*((App.Width/640))
+            X: =(437)*((App.Width/640))
+            Y: =(419)*((App.Height/1136))
+      - pgDenied1148:
+          Control: Classic/Button@2.2.0
+          Properties:
+            X: |-
+              =Max(12,(Parent.Width-320)/2)
+            Y: |-
+              =Max(12,(Parent.Height-76)/2)
+            Width: |-
+              =Min(320,Parent.Width-24)
+            Height: |-
+              =76
+            Size: |-
+              =14
+            Color: |-
+              =Color.White
+            Fill: |-
+              =ColorValue("#202225")
+            BorderThickness: |-
+              =0
+            RadiusTopLeft: |-
+              =10
+            RadiusTopRight: |-
+              =10
+            RadiusBottomLeft: |-
+              =10
+            RadiusBottomRight: |-
+              =10
+            HoverFill: |-
+              =ColorValue("#FFF0E6")
+            PressedFill: |-
+              =ColorValue("#FFD8C2")
+            Text: |-
+              ="Энэ хуудасны эрх холбогдоогүй · Профайл"
+            Visible: |-
+              =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            OnSelect: |-
+              =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)
