@@ -1,0 +1,522 @@
+// Declare the SharePoint record type for all screens during Studio binding.
+If(false,Set(pgAccess,Defaults(AssetUserAccess)));
+Set(varPerfStartV368,Now());Set(varPictureResponse,{picture:""});// ==========================================
+// APP.ONSTART
+// OFFLINE CACHE SAFE LOAD
+// ==========================================
+
+
+// ==========================================
+// 1. OFFLINE ITEMS
+// ==========================================
+
+ClearCollect(
+    colOfflineItems,
+    {
+        number: "",
+        displayName: "",
+        unitOfMeasure: "",
+        itemCategory: "",
+        inventory: 0,
+        unitCost: 0,
+        unitPrice: 0
+    }
+);
+
+Clear(colOfflineItems);
+
+IfError(
+    LoadData(
+        colOfflineItems,
+        "OfflineItems_V1015_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")),
+        true
+    ),
+    Notify(
+        "Items local cache уншихад алдаа гарлаа.",
+        NotificationType.Warning
+    )
+);
+
+// v10-1_5: one-time move of the legacy shared item cache into the per-user cache, then delete the shared file.
+If(IsEmpty(colOfflineItems),IfError(LoadData(colOfflineItems,"OfflineItems",true),Clear(colOfflineItems));
+ If(!IsEmpty(colOfflineItems),IfError(SaveData(colOfflineItems,"OfflineItems_V1015_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")));ClearData("OfflineItems"),false)));
+Set(
+    varLoadedItemRows,
+    CountRows(colOfflineItems)
+);
+
+
+// ==========================================
+// 2. ITEM SYNC INFO
+// ==========================================
+
+ClearCollect(
+    colItemSyncInfo,
+    {
+        LastSyncDate: ""
+    }
+);
+
+Clear(colItemSyncInfo);
+
+IfError(
+    LoadData(
+        colItemSyncInfo,
+        "ItemSyncInfo",
+        true
+    ),
+    Notify(
+        "Item sync info уншихад алдаа гарлаа.",
+        NotificationType.Warning
+    )
+);
+
+If(
+    CountRows(colItemSyncInfo) = 0,
+    Collect(
+        colItemSyncInfo,
+        {
+            LastSyncDate: ""
+        }
+    )
+);
+
+
+// ==========================================
+// 3. OFFLINE STOCK
+// ==========================================
+
+ClearCollect(
+    colOfflineStock,
+    {
+        itemNo: "",
+        locationCode: "",
+        quantity: 0
+    }
+);
+
+Clear(colOfflineStock);
+
+IfError(
+    LoadData(colOfflineStock,"OfflineStock" & "_V30_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")),true),
+    Notify(
+        "Stock local cache уншихад алдаа гарлаа.",
+        NotificationType.Warning
+    )
+);
+
+Set(
+    varLoadedStockRows,
+    CountRows(colOfflineStock)
+);
+
+
+// ==========================================
+// 4. OFFLINE BINS
+// ==========================================
+
+ClearCollect(
+    colOfflineBins,
+    {
+        itemNo: "",
+        locationCode: "",
+        binCode: ""
+    }
+);
+
+Clear(colOfflineBins);
+
+IfError(
+    LoadData(colOfflineBins,"OfflineBins" & "_V30_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")),true),
+    Notify(
+        "Bin local cache уншихад алдаа гарлаа.",
+        NotificationType.Warning
+    )
+);
+
+
+// ==========================================
+// 5. OFFLINE INVENTORY COUNT
+// ==========================================
+
+ClearCollect(
+    colOfflineInventory,
+    {
+        SyncKey: "",
+        Title: "",
+        ItemNo: "",
+        ItemName: "",
+        LocationCode: "",
+        OpeningBalance: 0,
+        CountQty: 0,
+        Variance: 0,
+        CountDate: Now(),
+        Counter: "",
+        Archived: false,
+        OwnerEmail: "",
+        Revision: 0,
+        SharePointID: 0,
+        SyncError: "",
+        Reason: "",
+        Comment: "",
+        Resolved: false,
+        Synced: false
+    }
+);
+
+Clear(colOfflineInventory);
+Set(varCountOwner,Lower(Trim(User().Email)));
+Set(varCountCacheKey,"C21" & Substitute(Text(User().EntraObjectId),"-",""));
+Set(varCountLoadDoneV21,false);Set(varCountStorageError,"");Set(varCountSyncBusy,false);Set(varCountSaving,false);Set(varCountCacheReady,false);
+Set(varCountDiskSafeV21,false);Set(varCountLoadErrorV21,false);Set(varCountMenuV21,false);Set(varCountCloudOnlyV21,false);
+ClearCollect(colCountDiskV21,{Schema:21,Owner:"",Payload:"[]"});Clear(colCountDiskV21);
+ClearCollect(colLegacyInventory,colOfflineInventory);
+IfError(LoadData(colLegacyInventory,"OfflineInventory",true),Set(varLegacyReadErrorV21,true));
+ClearCollect(colPreviousCountV21,colOfflineInventory);
+IfError(LoadData(colPreviousCountV21,"InventoryV19_" & Substitute(EncodeUrl(varCountOwner),".","%2E"),true),Set(varPreviousReadErrorV21,true));
+If(!IsBlank(varCountOwner) && !IsBlank(User().EntraObjectId),
+IfError(
+ LoadData(colCountDiskV21,varCountCacheKey,true);
+ If(!IsEmpty(colCountDiskV21),
+  If(First(colCountDiskV21).Schema<>21 || First(colCountDiskV21).Owner<>varCountOwner,
+   Error({Kind:ErrorKind.Validation,Message:"Хадгалалтын эзэмшигч эсвэл хувилбар тохирохгүй байна."}),
+   ClearCollect(colOfflineInventory,ForAll(Table(ParseJSON(First(colCountDiskV21).Payload)) As r,{
+    SyncKey:Text(r.Value.SyncKey),Title:Text(r.Value.Title),ItemNo:Text(r.Value.ItemNo),ItemName:Text(r.Value.ItemName),
+    LocationCode:Text(r.Value.LocationCode),OpeningBalance:Value(r.Value.OpeningBalance),CountQty:Value(r.Value.CountQty),Variance:Value(r.Value.Variance),
+    CountDate:DateTimeValue(Text(r.Value.CountDate)),Counter:Text(r.Value.Counter),OwnerEmail:Text(r.Value.OwnerEmail),
+    Revision:Value(r.Value.Revision),Archived:Boolean(r.Value.Archived),SharePointID:Value(r.Value.SharePointID),SyncError:Text(r.Value.SyncError),
+    Reason:Text(r.Value.Reason),Comment:Text(r.Value.Comment),Resolved:Boolean(r.Value.Resolved),Synced:Boolean(r.Value.Synced)}))));
+ Set(varCountDiskSafeV21,true);true,
+ Set(varCountLoadErrorV21,true);Set(varCountStorageError,FirstError.Message);false);
+If(varCountDiskSafeV21,
+ // v3.6.8: set-based merge of the V19 cache (same rule: add an own row only if its SyncKey is not loaded yet; first row per SyncKey wins).
+ ClearCollect(colPrevAddV368,Filter(colPreviousCountV21,OwnerEmail=varCountOwner && !(SyncKey in colOfflineInventory.SyncKey)));
+ Set(varPerfPrevCandidatesV368,CountRows(colPrevAddV368));
+ If(!IsEmpty(colPrevAddV368),Collect(colOfflineInventory,ForAll(GroupBy(colPrevAddV368,SyncKey,PrevRows) As g,Patch(First(g.PrevRows),{SyncKey:g.SyncKey}))));
+ Clear(colPrevAddV368);
+ // v3.6.8: disk already holds exactly what was loaded, so rewrite it only when V19 rows were merged in.
+ If(varPerfPrevCandidatesV368=0 && !IsEmpty(colCountDiskV21),Set(varCountCacheReady,true);Set(varCountStorageError,""),
+ IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,"")))));
+Set(varPerfPrevRowsV368,CountRows(colPreviousCountV21));
+Clear(colPreviousCountV21);
+Set(varCountLoadDoneV21,true);Set(varPerfCountLoadedV368,Now());Set(varPerfCountRowsV368,CountRows(colOfflineInventory));
+
+// ==========================================
+// 6. STOCK SYNC VARIABLES
+// ==========================================
+
+Set(
+    varStockLoading,
+    false
+);
+
+Set(
+    varLoadedStockRows,
+    CountRows(colOfflineStock)
+);
+
+
+// ==========================================
+// 7. ITEM SNAPSHOT SYNC VARIABLES
+// ==========================================
+
+Set(
+    varItemLoading,
+    false
+);
+
+Set(
+    varLoadedItemRows,
+    CountRows(colOfflineItems)
+);
+
+
+// ==========================================
+// 8. TEMP NEW ITEM SNAPSHOT
+// ==========================================
+
+ClearCollect(
+    colNewItemsSnapshot,
+    {
+        number: "",
+        displayName: "",
+        unitOfMeasure: "",
+        itemCategory: "",
+        inventory: 0,
+        unitCost: 0,
+        unitPrice: 0
+    }
+);
+
+Clear(colNewItemsSnapshot);
+
+
+// ==========================================
+// 9. STOCK CHECK VARIABLES
+// ==========================================
+
+Set(
+    varStockChecking,
+    false
+);
+
+Set(
+    varStockCheckTotal,
+    0
+);
+
+Set(
+    varStockCheckMatched,
+    0
+);
+
+Set(
+    varStockCheckMismatch,
+    0
+);
+
+Set(
+    varStockCheckLocalTotal,
+    0
+);
+
+Set(
+    varStockCheckMasterTotal,
+    0
+);
+
+Set(
+    varStockCheckDiffTotal,
+    0
+);
+
+
+// ==========================================
+// 10. STOCK MASTER CHECK COLLECTION
+// ==========================================
+
+ClearCollect(
+    colStockMasterCheck,
+    {
+        itemNo: "",
+        locationCode: "",
+        quantity: 0
+    }
+);
+
+Clear(colStockMasterCheck);
+
+
+// ==========================================
+// 11. STOCK MISMATCH COLLECTION
+// ==========================================
+
+ClearCollect(
+    colStockMismatch,
+    {
+        itemNo: "",
+        locationCode: "",
+        localQty: 0,
+        masterQty: 0,
+        difference: 0,
+        status: ""
+    }
+);
+
+Clear(colStockMismatch);
+
+
+// ==========================================
+// 12. TEMP NEW STOCK SNAPSHOT
+// ==========================================
+
+ClearCollect(
+    colNewStockSnapshot,
+    {
+        itemNo: "",
+        locationCode: "",
+        quantity: 0
+    }
+);
+
+Clear(colNewStockSnapshot);
+
+
+// ==========================================
+// 13. GENERAL VARIABLES
+// ==========================================
+
+Set(varItem, Blank());
+Set(varOpeningBalance, Blank());
+Set(varBarcodeText, Blank());
+Set(varItemPicture, Blank());
+Set(varNewPicture, Blank());
+Set(varJustSelected, false);
+
+Set(varLocationCode, Blank());
+Set(varLocationName, Blank());
+Set(varShowWarehouseList, false);
+
+Set(varExpandedID, Blank());
+Set(varReason, "");
+Set(varComment, "");
+
+Set(varFilterType, "Бүгд");
+
+Set(varReportFromDate, Today());
+Set(varReportToDate, Today());
+
+ClearCollect(colDStockBaseV17,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});Clear(colDStockBaseV17);
+Set(varDMaxMonth,1);Set(varRptIncludeUncounted,false);
+If(!Coalesce(varDStockBuildingV17,false),
+Set(varDStockBuildingV17,true);
+With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:false},
+    IfError(
+        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);Set(varDStockReadyV17,false);
+Set(varDStockBuiltAtV17,Blank());Clear(colDStockBaseV17);
+If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));Clear(colDDiskV369);
+    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
+    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
+        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
+            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
+            Set(varDStockBuiltAtV17,_head.FetchedV369);Set(varDStockReadyV17,true)));
+    Clear(colDDiskV369)));
+        If(!IsBlank(_scope) && (_pair || (!Connection.Connected && !Coalesce(varDStockReadyV17,false) &&
+            (IsEmpty(colDStockBaseV17) || false))),
+            ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,
+                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+            Collect(colDJoinV17,ForAll(Filter(colOfflineStock,!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
+                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+                With({_master:LookUp(g.JoinRows,JoinKind=0)},
+                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
+                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
+                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});Clear(colDLegacyV369);
+                IfError(If(Lower(User().Email)="od.u@tme.mn",LoadData(colDLegacyV369,"DashboardStockV17",true)),Clear(colDLegacyV369));
+                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
+                    Patch(r,{Cost:Blank()})));Clear(colDLegacyV369));
+            ClearCollect(colDStockBaseV17,colDCandidateV369);
+            If(_pair,Set(varDStockBuiltAtV17,Now());Set(varDStockReadyV17,true);
+If(!IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
+    Collect(colDDiskV369,colDStockBaseV17);
+    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+    Clear(colDDiskV369))));
+        true,
+        Set(varDStockCacheErrorV17,true);false);
+    Clear(colDCandidateV369);Clear(colDJoinV17);
+    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
+    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
+        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
+Set(varDStockBuildingV17,false));
+Set(varAutoDataChecked,Blank());Set(varHistoryArchive,false);Set(varHistoryTrash,false);Set(varHistoryDeleteConfirm,false);
+If(Connection.Connected && !Coalesce(varStartupSyncRunning,false),
+Set(varStartupSyncRunning,true);
+Concurrent(Set(varAutoItemsError,false);
+IfError(
+    Set(varAutoItemsResponse,PA_GetItemsSnapshot.Run());
+    ClearCollect(colAutoItemsV16,ForAll(Table(ParseJSON(Coalesce(varAutoItemsResponse.itemsjson,"[]"))) As r,{number:Text(r.Value.number),displayName:Text(r.Value.displayName),unitOfMeasure:Text(r.Value.unitOfMeasure),itemCategory:Text(r.Value.itemCategory),inventory:Value(r.Value.inventory),unitCost:Value(r.Value.unitCost),unitPrice:Value(r.Value.unitPrice)}));
+    If(IsEmpty(colAutoItemsV16),Set(varAutoItemsError,true),
+        IfError(SaveData(colAutoItemsV16,"OfflineItems_V1015_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x"))),Set(varAutoItemsCacheError,true),Set(varAutoItemsCacheError,false));
+        ClearCollect(colOfflineItems,colAutoItemsV16);Set(varAutoItemsUpdated,Now());Set(varAutoItemsResponse,Blank()));true,
+    Set(varAutoItemsError,true);false),
+Set(varAutoStockError,false);
+IfError(
+    Set(varAutoStockResponse,PA_GetStockFromExcel.Run());
+    ClearCollect(colAutoStockV16,ForAll(Table(ParseJSON(Coalesce(varAutoStockResponse.stockjson,"[]"))) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),quantity:Value(r.Value.quantity)}));
+    If(IsEmpty(colAutoStockV16),Set(varAutoStockError,true),
+        IfError(If((Lower(User().Email)="od.u@tme.mn" || (!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()))),ClearCollect(colAclAutoStockV16Disk,Filter(colAutoStockV16,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || ((!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now())) && (pgAccess.LocationCode="*" || ("|" & Upper(Trim(locationCode)) & "|") in pgAccess.LocationCode))))));SaveData(colAclAutoStockV16Disk,"OfflineStock" & "_V30_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")))),Set(varAutoStockCacheError,true),Set(varAutoStockCacheError,false));
+        ClearCollect(colOfflineStock,colAutoStockV16);Set(varAutoStockUpdated,Now());Set(varAutoStockResponse,Blank()));true,
+    Set(varAutoStockError,true);false),
+Set(varAutoBinsError,false);
+IfError(
+    Set(varAutoBinsResponse,PA_GetAllBinsOffline.Run());
+    ClearCollect(colAutoBinsV16,ForAll(Table(ParseJSON(Coalesce(varAutoBinsResponse.binsjson,"[]"))) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),binCode:Text(r.Value.binCode)}));
+    If(IsEmpty(colAutoBinsV16),Set(varAutoBinsError,true),
+        IfError(If((Lower(User().Email)="od.u@tme.mn" || (!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()))),ClearCollect(colAclAutoBinsV16Disk,Filter(colAutoBinsV16,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || ((!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now())) && (pgAccess.LocationCode="*" || ("|" & Upper(Trim(locationCode)) & "|") in pgAccess.LocationCode))))));SaveData(colAclAutoBinsV16Disk,"OfflineBins" & "_V30_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")))),Set(varAutoBinsCacheError,true),Set(varAutoBinsCacheError,false));
+        ClearCollect(colOfflineBins,colAutoBinsV16);Set(varAutoBinsUpdated,Now());Clear(colAutoBinsV16);Set(varAutoBinsResponse,Blank()));true,
+    Set(varAutoBinsError,true);false),
+If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
+Set(varHistoryLoading,true);Set(varHistoryCloudError,false);
+IfError(
+    Refresh(InventoryCount);
+    ClearCollect(colRestoreCloudV16,Filter(InventoryCount,Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)));
+    Set(varHistoryCloudLimit,CountRows(colRestoreCloudV16)>=5000);
+    ClearCollect(colRestoreRowsV16,ForAll(colRestoreCloudV16 As r,With({_title:If(StartsWith(r.Title,"ARCHIVED:"),Mid(r.Title,10),r.Title)},{
+        SyncKey:If(StartsWith(_title,"COUNT:"),Mid(_title,7),"SP-" & Text(r.ID)),
+        Title:_title,Archived:StartsWith(r.Title,"ARCHIVED:"),ItemNo:r.ItemNo,ItemName:r.ItemName,LocationCode:Trim(r.LocationCode),
+        OpeningBalance:IfError(Value(r.OpeningBalance),Blank()),CountQty:IfError(Value(r.CountQty),Blank()),
+        Variance:IfError(Value(r.CountQty)-Value(r.OpeningBalance),Blank()),CountDate:IfError(DateTimeValue(r.CountDate),Blank()),
+        Counter:Coalesce(r.Counter,User().FullName),OwnerEmail:varCountOwner,SharePointID:r.ID,Revision:0,SyncError:"",
+        Reason:r.Reason,Comment:r.Comment,Resolved:r.Resolved,Synced:true})));
+    ClearCollect(colHistoryMergeV16,AddColumns(colOfflineInventory,MergePriority,If(Synced,0,2)));
+    Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
+    ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
+        Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
+    ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));
+    Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
+    If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+SaveData(colCountDiskV21,varCountCacheKey)),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+    true,
+    Set(varHistoryCloudError,true);false);
+Set(varHistoryLoading,false)));
+Set(varLoadedItemRows,CountRows(colOfflineItems));Set(varLoadedStockRows,CountRows(colOfflineStock));
+If(!Coalesce(varDStockBuildingV17,false),
+Set(varDStockBuildingV17,true);
+With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:!Coalesce(varAutoStockError,true) && !Coalesce(varAutoItemsError,true)},
+    IfError(
+        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);Set(varDStockReadyV17,false);
+Set(varDStockBuiltAtV17,Blank());Clear(colDStockBaseV17);
+If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));Clear(colDDiskV369);
+    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
+    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
+        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
+            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
+            Set(varDStockBuiltAtV17,_head.FetchedV369);Set(varDStockReadyV17,true)));
+    Clear(colDDiskV369)));
+        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
+            (IsEmpty(colDStockBaseV17) || !Coalesce(varAutoStockError,true)))),
+            ClearCollect(colDJoinV17,ForAll(If(_pair,colAutoItemsV16,colOfflineItems) As i,{JoinNo:i.number,JoinKind:0,
+                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+            Collect(colDJoinV17,ForAll(Filter(If(_pair,colAutoStockV16,colOfflineStock),!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
+                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+                With({_master:LookUp(g.JoinRows,JoinKind=0)},
+                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
+                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
+                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});Clear(colDLegacyV369);
+                IfError(If(Lower(User().Email)="od.u@tme.mn",LoadData(colDLegacyV369,"DashboardStockV17",true)),Clear(colDLegacyV369));
+                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
+                    Patch(r,{Cost:Blank()})));Clear(colDLegacyV369));
+            ClearCollect(colDStockBaseV17,colDCandidateV369);
+            If(_pair,Set(varDStockBuiltAtV17,Now());Set(varDStockReadyV17,true);
+If(!IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
+    Collect(colDDiskV369,colDStockBaseV17);
+    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+    Clear(colDDiskV369))));
+        true,
+        Set(varDStockCacheErrorV17,true);false);
+    Clear(colDCandidateV369);Clear(colDJoinV17);
+    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
+    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
+        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
+Set(varDStockBuildingV17,false));Clear(colAutoItemsV16);Clear(colAutoStockV16);Set(varAutoDataChecked,Now());Set(varStartupSyncRunning,false);
+Set(varCountUploadQueue,!IsEmpty(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !Synced))));
+// v3.6.8: home KPIs are computed by нүүр.OnVisible (permission-filtered). Recompute here only when
+// the user is already on нүүр (non-blocking OnStart: нүүр may have rendered before the count cache loaded).
+If(App.ActiveScreen='нүүр',
+ClearCollect(colHomeLatest,ForAll(GroupBy(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !IsBlank(ItemNo)),ItemNo,LocationCode,HomeRows) As g,Patch(First(SortByColumns(g.HomeRows,"CountDate",SortOrder.Descending,"SyncKey",SortOrder.Descending)),{ItemNo:g.ItemNo,LocationCode:g.LocationCode})));
+ClearCollect(colHomeMonths,ForAll(Sequence(8) As m,With({d:DateAdd(Date(Year(Today()),Month(Today()),1),m.Value-8,TimeUnit.Months)},{MonthDate:d,Total:CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months))),Pending:CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !Synced && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months)))})));
+Set(varHomeAccuracy,If(IsEmpty(colHomeLatest),Blank(),CountRows(Filter(colHomeLatest,!IsBlank(OpeningBalance) && !IsBlank(CountQty) && CountQty=OpeningBalance))/CountRows(colHomeLatest)*100));
+Set(varHomeEstimate,If(IsEmpty(colOfflineItems),Blank(),Sum(colOfflineItems,inventory*unitCost))));
+Set(varPerfOnStartEndV368,Now())

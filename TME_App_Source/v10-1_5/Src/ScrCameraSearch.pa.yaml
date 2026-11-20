@@ -1,0 +1,694 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ScrCameraSearch:
+    Properties:
+      Fill: =ColorValue("#F5F4F1")
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      OnVisible: |-
+        =With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+         With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+               valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+               pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+            If(IsBlank(principal),
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+               !Connection.Connected,
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+                If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCameraSearch',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+               pending && same && Coalesce(pgAclConnected,false),
+                If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+               !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+                With({rid:GUID()},
+                    Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+                    If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+                    Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+                    With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+                     If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                       If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCameraSearch',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                         !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                         IfError(
+                          With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=principal)},
+                            If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                              If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCameraSearch',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                                Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                                If(IsBlank(candidate.ID) || Lower(Trim(candidate.UserEmail))<>principal,
+                                     Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                                   !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                                   !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                                   Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                          If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCameraSearch',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+            )
+         ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(varCView,"search");Set(varCOnlyStock,false);Set(varCQuery,"");Set(varCItem,"");Set(varCPhoto,Blank());Set(varCNewPhoto,Blank());Set(varCZoom,1);Set(varCLoading,false);
+        If(!Coalesce(varCInitialized,false),
+        ClearCollect(colCPhotos,{PhotoId:"",OwnerEmail:"",ItemNo:"",ImageData:"",Created:Now()});Clear(colCPhotos);
+        IfError(LoadData(colCPhotos,"CameraPhotosV12",true),Notify("Локал зургийг уншиж чадсангүй.",NotificationType.Warning);false,true);
+        Set(varCInitialized,true));
+        Reset(cSearch)
+        )
+      Width: =App.Width
+    Children:
+      - pgDenied252:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =76
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgAclState="checking","Эрх шалгаж байна…",Switch(pgAclState,"checking","Эрх шалгаж байна…","signIn","Microsoft 365-д нэвтэрнэ үү","readError","SharePoint-оос эрх уншиж чадсангүй","missing","Энэ нэвтрэх нэрээр эрхийн бүртгэл харагдсангүй","inactive","Эрхийн бүртгэл идэвхгүй","expired","Эрхийн хугацаа дууссан","offline","Эрх шалгахын тулд онлайн орно уу","Энэ хуудасны эрх олгогдоогүй") & " · Профайл")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            Width: =Min(320,Parent.Width-24)
+            X: =Max(12,(Parent.Width-320)/2)
+            Y: =Max(12,(Parent.Height-76)/2)
+      - cLoad:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =0
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(varRptSending || varRptPdfPending,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,1,1)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#86968F")
+            HoverFill: =ColorValue("#FFFFFF")
+            OnSelect: |-
+              =Set(varCLoading,true);Set(varCPhoto,Blank());Set(varCNewPhoto,Blank());Set(varCZoom,1);Reset(cTakePhoto);Reset(cPickPhoto);
+              If(Connection.Connected,IfError(Set(varCPhoto,'PowerAppV2->Compose,Findonerecord(V3),Getanimage,fileordo...'.Run(varCItem).picture),Notify("Серверийн зураг татагдсангүй. Локал зургаа сонгож болно.",NotificationType.Warning)));
+              Set(varCLoading,false);Set(varCView,"detail")
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =ColorValue("#FFFFFF")
+            PressedFill: =ColorValue("#2B5343")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: =""
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,1,1)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0,0)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0,0)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cBack:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =0
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(varRptSending || varRptPdfPending,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,42,38)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#86968F")
+            HoverFill: =ColorValue("#FFFFFF")
+            OnSelect: =If(varCView="search",Navigate(нүүр,ScreenTransition.Fade),Set(varCView,"search"))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =ColorValue("#FFFFFF")
+            PressedFill: =ColorValue("#2B5343")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="‹"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,40,36)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,24,18)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,22,24)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cTitle:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#202225")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,42,42)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =21*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="Камер ба хайлт"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,470,278)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,80,66)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,22,23)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cSub:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#969DA8")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,24,24)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =10*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="Барааны код · нэр · зураг"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,610,320)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,26,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,78,71)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cSearch:
+          Control: Classic/TextInput@2.3.2
+          Properties:
+            BorderColor: =ColorValue("#ED5F1C")
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#202225")
+            Default: =varCQuery
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,48,46)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            HintText: ="Код эсвэл нэрээр хайх…"
+            HoverBorderColor: =RGBA(131, 24, 75, 1)
+            HoverFill: =RGBA(255, 211, 205, 1)
+            PaddingBottom: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Height/820),(App.Height/1136)))
+            PaddingLeft: =(12)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))
+            PaddingRight: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))
+            PaddingTop: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Height/820),(App.Height/1136)))
+            RadiusBottomLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail"))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,618,270)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,26,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,117,165)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cClear:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =0
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(varRptSending || varRptPdfPending,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,48,46)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#86968F")
+            HoverFill: =ColorValue("#FFFFFF")
+            OnSelect: =Set(varCQuery,"");Reset(cSearch)
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =ColorValue("#FFFFFF")
+            PressedFill: =ColorValue("#2B5343")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="×"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail"))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,98,44)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,656,300)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,117,165)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cStock:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =0
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(varRptSending || varRptPdfPending,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,36,34)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#86968F")
+            HoverFill: =ColorValue("#FFFFFF")
+            OnSelect: =Set(varCOnlyStock,!varCOnlyStock)
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =ColorValue("#FFFFFF")
+            PressedFill: =ColorValue("#2B5343")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="Бэлэн"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail"))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,105,100)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,26,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,178,222)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cStockState:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#969DA8")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,30,30)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =10*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: =If(varCOnlyStock,"Зөвхөн үлдэгдэлтэй","Бүх бараа")
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail"))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,460,212)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,147,132)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,180,224)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cBarcode:
+          Control: BarcodeReader@1.0.25
+          Properties:
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FillColor: =RGBA(99, 139, 44, 1)
+            FontSize: =24
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,43,43)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            OnScan: =Set(varCQuery,Text(First(Self.Barcodes).Value));Reset(cSearch);If(IsBlank(LookUp(colOfflineItems,number=varCQuery,number)),Notify("Локал жагсаалтад код олдсонгүй. Синк эсвэл нэрээр хайлт хийнэ үү.",NotificationType.Warning),Set(varCItem,varCQuery);Select(cLoad))
+            Text: ="Баркод скан"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail"))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,143,224)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,459,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,23,108)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cResults:
+          Control: Gallery@2.15.0
+          Variant: BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(0,0,0,0)
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,563,452)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            Items: =Filter(colOfflineItems As i,!IsBlank(i.number) && (IsBlank(Trim(cSearch.Text)) || Lower(Trim(cSearch.Text)) in Lower(i.number) || Lower(Trim(cSearch.Text)) in Lower(i.displayName)) && (!varCOnlyStock || Sum(Filter(colOfflineStock,itemNo=i.number),quantity)>0))
+            TemplateFill: =RGBA(0,0,0,0)
+            TemplatePadding: =6*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            TemplateSize: =92*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail"))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,728,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,26,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,227,272)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+          Children:
+            - cResultRow:
+                Control: Classic/Button@2.2.0
+                Properties:
+                  Align: =Align.Left
+                  BorderColor: =ColorValue("#DFE4E1")
+                  BorderThickness: =0
+                  Color: =ColorValue("#202225")
+                  DisabledBorderColor: =RGBA(166, 166, 166, 1)
+                  DisplayMode: =If(varRptSending || varRptPdfPending,DisplayMode.Disabled,DisplayMode.Edit)
+                  Fill: =ColorValue("#FFFFFF")
+                  FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.'Open Sans'
+                  Height: =86*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+                  HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+                  HoverColor: =ColorValue("#86968F")
+                  HoverFill: =ColorValue("#FFFFFF")
+                  OnSelect: =Set(varCItem,ThisItem.number);Select(cLoad)
+                  PaddingBottom: =(5)*((App.Height/1136))
+                  PaddingLeft: =(5)*((App.Width/640))
+                  PaddingRight: =(5)*((App.Width/640))
+                  PaddingTop: =(5)*((App.Height/1136))
+                  PressedBorderColor: =Self.Fill
+                  PressedColor: =ColorValue("#FFFFFF")
+                  PressedFill: =ColorValue("#2B5343")
+                  RadiusBottomLeft: =(14)*(Min(App.Width/640,App.Height/1136))
+                  RadiusBottomRight: =(14)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopLeft: =(14)*(Min(App.Width/640,App.Height/1136))
+                  RadiusTopRight: =(14)*(Min(App.Width/640,App.Height/1136))
+                  Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+                  Text: |-
+                    =ThisItem.number & Char(10) & ThisItem.displayName & Char(10) & "Үлдэгдэл: " & Text(Sum(Filter(colOfflineStock,itemNo=ThisItem.number),quantity),"#,##0.###")
+                  Width: =Parent.TemplateWidth
+      - cEmpty:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#969DA8")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,100,100)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="Бараа олдсонгүй. Өгөгдлөө синк хийж, код эсвэл нэрээр хайна уу."
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail")) && IsEmpty(cResults.AllItems))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,620,296)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,80,35)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,390,350)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cLocalNote:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#969DA8")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,22,30)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =9*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: |-
+              ="Үлдэгдэл: төхөөрөмжид синк хийсэн өгөгдөл"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((varCView="search") || (App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height && varCView="detail"))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,728,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,26,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,791,740)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cPhotoCard:
+          Control: GroupContainer@1.5.0
+          Variant: ManualLayout
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            Fill: =ColorValue("#FFFFFF")
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,330,273)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            RadiusBottomLeft: =18
+            RadiusBottomRight: =18
+            RadiusTopLeft: =18
+            RadiusTopRight: =18
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,100,161)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cItemTitle:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#202225")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,64,48)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =13*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: =varCItem & Char(10) & Coalesce(LookUp(colOfflineItems,number=varCItem,displayName),"")
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,23,106)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cPhoto:
+          Control: Image@2.2.3
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =RGBA(215, 223, 240, 1)
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,314,261)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            Image: =Coalesce(varCNewPhoto,varCPhoto)
+            ImagePosition: =If(varCZoom>1,ImagePosition.Fill,ImagePosition.Fit)
+            OnSelect: =Set(varCZoom,If(varCZoom=1,2,1))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,350,310)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,796,28)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,108,167)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cNoPhoto:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#969DA8")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,80,80)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: =If(varCLoading,"Зураг татаж байна…","Зураг байхгүй. Доорх товчоор зураг авна уу.")
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail" && IsBlank(varCPhoto) && IsBlank(varCNewPhoto))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,300,266)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,819,50)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,216,257)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cZoom:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =0
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(varRptSending || varRptPdfPending,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,34,34)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#86968F")
+            HoverFill: =ColorValue("#FFFFFF")
+            OnSelect: =Set(varCZoom,If(varCZoom=1,2,1))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =ColorValue("#FFFFFF")
+            PressedFill: =ColorValue("#2B5343")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="⤢"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,48,48)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,1094,285)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,385,391)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cImageState:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#969DA8")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,25,24)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =10*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: =If(!IsBlank(varCNewPhoto),"Шинэ зураг · хадгалаагүй","Зураг · " & If(varCZoom>1,"дүүргэж харах","бүтнээр харах"))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,440,438)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cPhotos:
+          Control: Gallery@2.15.0
+          Variant: BrowseLayout_Vertical_TwoTextOneImageVariant_ver5.0
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(0,0,0,0)
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,64,64)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            Items: =Filter(colCPhotos,ItemNo=varCItem && OwnerEmail=Lower(User().Email))
+            TemplateFill: =RGBA(0,0,0,0)
+            TemplatePadding: =4
+            TemplateSize: =74*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,475,470)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+          Children:
+            - cThumb:
+                Control: Image@2.2.3
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  Fill: =RGBA(215, 223, 240, 1)
+                  Height: =58*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+                  Image: =ThisItem.ImageData
+                  OnSelect: =Set(varCPhoto,ThisItem.ImageData);Set(varCNewPhoto,Blank())
+                  Width: =66*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+      - cStockInfo:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#202225")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,58,58)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: |-
+              ="Үлдэгдэл: " & Text(Sum(Filter(colOfflineStock,itemNo=varCItem),quantity),"#,##0.###") & Char(10) & "Агуулах: " & Concat(Distinct(Filter(colOfflineStock,itemNo=varCItem),locationCode),Value,", ")
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,550,544)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cTakePhoto:
+          Control: AddMedia@2.2.1
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(111,73,224,1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            ChangePictureText: ="Зураг авах"
+            Color: =ColorValue("#202225")
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,48,48)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            OnChange: =Set(varCNewPhoto,cTakePhoto.Media)
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="Зураг авах"
+            UseMobileCamera: =true
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,174,156)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,625,619)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cPickPhoto:
+          Control: AddMedia@2.2.1
+          Properties:
+            Align: =Align.Right
+            BorderColor: =RGBA(111,73,224,1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            ChangePictureText: ="Галлерей"
+            Color: =ColorValue("#202225")
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,48,48)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            OnChange: =Set(varCNewPhoto,cPickPhoto.Media)
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="Галлерей"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,174,156)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,980,188)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,625,619)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cSavePhoto:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DFE4E1")
+            BorderThickness: =0
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(IsBlank(varCNewPhoto),DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#ED5F1C")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,48,48)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#86968F")
+            HoverFill: =ColorValue("#FFFFFF")
+            OnSelect: |-
+              =If(IsBlank(varCItem) || IsBlank(varCNewPhoto),Notify("Бараа болон шинэ зураг сонгоно уу.",NotificationType.Warning),
+              Set(varCImageJSON,JSON(varCNewPhoto,JSONFormat.IncludeBinaryData));
+              Collect(colCPhotos,{PhotoId:Text(GUID()),OwnerEmail:Lower(User().Email),ItemNo:varCItem,ImageData:Mid(varCImageJSON,2,Len(varCImageJSON)-2),Created:Now()});
+              IfError(SaveData(colCPhotos,"CameraPhotosV12"),Notify("Зураг зөвхөн санах ойд байна. Төхөөрөмжид хадгалж чадсангүй.",NotificationType.Error);false,Notify("Зураг төхөөрөмжид хадгалагдлаа. Серверт илгээгээгүй.",NotificationType.Success);true);
+              Set(varCPhoto,varCNewPhoto);Set(varCNewPhoto,Blank()))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =ColorValue("#FFFFFF")
+            PressedFill: =ColorValue("#2B5343")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="Зургийг локал хадгалах"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,690,683)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+      - cPhotoNotice:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#ED5F1C")
+            Fill: =RGBA(0,0,0,0)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,26,28)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+            OnSelect: |-
+              =If(IsBlank(varCItem),Notify("Бараа сонгоно уу.",NotificationType.Warning),
+              !Connection.Connected,Notify("BC-д илгээхэд интернет хэрэгтэй.",NotificationType.Warning),
+              IsBlank(Coalesce(varCNewPhoto,varCPhoto)),Notify("Зураг сонгоно уу.",NotificationType.Warning),
+              With({j:JSON(Coalesce(varCNewPhoto,varCPhoto),JSONFormat.IncludeBinaryData)},
+              With({payload:Mid(j,2,Len(j)-2)},
+              If(!StartsWith(payload,"data:image"),Notify("Камер эсвэл локал зураг сонгоно уу.",NotificationType.Warning),
+              IfError('PowerAppV2->Getrecord(V3)'.Run(varCItem,payload),Notify("Зураг илгээх алдаа: " & FirstError.Message,NotificationType.Error);false,Notify("BC зураг илгээх хүсэлт гүйцэтгэлээ.",NotificationType.Success);true)))))
+            PaddingBottom: =0
+            PaddingLeft: =0
+            PaddingRight: =0
+            PaddingTop: =0
+            Size: =10*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+            Text: ="BC-д зураг илгээх → (энд дарна уу)"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,750,741)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))

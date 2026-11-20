@@ -1,0 +1,40 @@
+With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+ With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+       valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+       pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+    If(IsBlank(principal),
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+       !Connection.Connected,
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+        If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrReport1',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+       pending && same && Coalesce(pgAclConnected,false),
+        If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+       !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+        With({rid:GUID()},
+            Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+            If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+            Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+            With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+             If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+               If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrReport1',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                 !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                 IfError(
+                  With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=principal)},
+                    If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                      If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrReport1',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                        Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                        If(IsBlank(candidate.ID) || Lower(Trim(candidate.UserEmail))<>principal,
+                             Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                           !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                           !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                           Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                  If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrReport1',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+    )
+ ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|report|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Clear(colRRaw);Clear(colRLatest);Clear(colRItems);Clear(colRptVariance);Set(varRptMissingReasons,0);Set(varRptIncludeUncounted,App.Width<First(App.SizeBreakpoints).Value);Set(varReportTab,If(App.Width<First(App.SizeBreakpoints).Value,"Хураангуй","Бараагаар"));Set(varRptSettings,false); Set(varRptWarehouse,false); Set(varRptExportDialog,false); Set(varRptPdfPending,false); Set(varRptSending,false);
+If(IsBlank(varRptStart),Set(varRptStart,Date(Year(Today()),Month(Today()),1))); If(IsBlank(varRptEnd),Set(varRptEnd,Today()));
+If(IsBlank(varReportTab),Set(varReportTab,If(App.Width<First(App.SizeBreakpoints).Value,"Хураангуй","Бараагаар")));
+If(Coalesce(varRptFixVersion,0)<>4,Set(varRptInitialized,false);Set(varRptFixVersion,4));
+Select(Button10_2);Set(varRptDetail,false);Set(varRptStatus,"Бүгд");Set(varRptSortVariance,false);ClearCollect(colRptSearchItemsV16,{number:""});Clear(colRptSearchItemsV16);Reset(rptSearchV16);Set(mobReportMenu,false)
+)

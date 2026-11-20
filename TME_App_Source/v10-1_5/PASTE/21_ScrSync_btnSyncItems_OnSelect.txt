@@ -1,0 +1,149 @@
+// ==========================================
+// ITEM SYNC - JSON SNAPSHOT
+// ==========================================
+
+If(
+    !Connection.Connected,
+
+    Notify(
+        "Интернет холболт алга байна.",
+        NotificationType.Warning
+    ),
+
+    Set(
+        varItemLoading,
+        true
+    );
+
+    IfError(
+
+        // ==========================================
+        // 1. SNAPSHOT FLOW ДУУДАХ
+        // ==========================================
+
+        Set(
+            varItemsResponse,
+            PA_GetItemsSnapshot.Run()
+        );
+
+        // ==========================================
+        // 2. JSON -> TEMP COLLECTION
+        // ==========================================
+
+        ClearCollect(
+            colNewItemsSnapshot,
+
+            ForAll(
+                Table(
+                    ParseJSON(
+                        Coalesce(
+                            varItemsResponse.itemsjson,
+                            "[]"
+                        )
+                    )
+                ) As r,
+
+                {
+                    number:
+                        Text(r.Value.number),
+
+                    displayName:
+                        Text(r.Value.displayName),
+
+                    unitOfMeasure:
+                        Text(r.Value.unitOfMeasure),
+
+                    itemCategory:
+                        Text(r.Value.itemCategory),
+
+                    inventory:
+                        Value(r.Value.inventory),
+
+                    unitCost:
+                        Value(r.Value.unitCost),
+
+                    unitPrice:
+                        Value(r.Value.unitPrice)
+                }
+            )
+        );
+
+        // ==========================================
+        // 3. EMPTY PROTECTION
+        // ==========================================
+
+        If(
+            CountRows(colNewItemsSnapshot) = 0,
+
+            Notify(
+                "Items snapshot хоосон ирлээ. Local items солигдоогүй.",
+                NotificationType.Error
+            ),
+
+            // ======================================
+            // 4. LOCAL ITEMS REPLACE
+            // ======================================
+
+            ClearCollect(
+                colOfflineItems,
+                colNewItemsSnapshot
+            );
+
+            // ======================================
+            // 5. DEVICE STORAGE-Д ХАДГАЛАХ
+            // ======================================
+
+            IfError(
+
+                SaveData(
+                    colOfflineItems,
+                    "OfflineItems_V1015_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x"))
+                ),
+
+                Notify(
+                    "Items device-д хадгалагдсангүй: " &
+                    FirstError.Message,
+                    NotificationType.Error
+                ),
+
+                // ==================================
+                // 6. SAVE SUCCESS
+                // ==================================
+
+                Set(
+                    varLoadedItemRows,
+                    CountRows(colOfflineItems)
+                );
+
+                Notify(
+                    "Бараа амжилттай татагдлаа | " &
+                    Text(
+                        varLoadedItemRows,
+                        "#,##0"
+                    ) &
+                    " мөр",
+                    NotificationType.Success
+                )
+            )
+        ),
+
+        // ==========================================
+        // FLOW ERROR
+        // ==========================================
+
+        Notify(
+            "Бараа татах үед алдаа гарлаа: " &
+            FirstError.Message,
+            NotificationType.Error
+        )
+    );
+
+    Set(
+        varItemLoading,
+        false
+    )
+);
+ClearCollect(colHomeLatest,ForAll(GroupBy(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !IsBlank(ItemNo)),ItemNo,LocationCode,HomeRows) As g,Patch(First(SortByColumns(g.HomeRows,"CountDate",SortOrder.Descending,"SyncKey",SortOrder.Descending)),{ItemNo:g.ItemNo,LocationCode:g.LocationCode})));
+ClearCollect(colHomeMonths,ForAll(Sequence(8) As m,With({d:DateAdd(Date(Year(Today()),Month(Today()),1),m.Value-8,TimeUnit.Months)},{MonthDate:d,Total:CountRows(Filter(colOfflineInventory,OwnerEmail=varCountOwner && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months))),Pending:CountRows(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !Synced && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months)))})));
+Set(varHomeAccuracy,If(IsEmpty(colHomeLatest),Blank(),CountRows(Filter(colHomeLatest,!IsBlank(OpeningBalance) && !IsBlank(CountQty) && CountQty=OpeningBalance))/CountRows(colHomeLatest)*100));
+Set(varHomeEstimate,If(IsEmpty(colOfflineItems),Blank(),Sum(colOfflineItems,inventory*unitCost)))

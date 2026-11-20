@@ -1,0 +1,35 @@
+With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+ With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+       valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+       pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+    If(IsBlank(principal),
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+       !Connection.Connected,
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+        If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+       pending && same && Coalesce(pgAclConnected,false),
+        If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+       !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+        With({rid:GUID()},
+            Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+            If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+            Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+            With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+             If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+               If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                 !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                 IfError(
+                  With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=principal)},
+                    If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                      If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                        Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                        If(IsBlank(candidate.ID) || Lower(Trim(candidate.UserEmail))<>principal,
+                             Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                           !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                           !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                           Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                  If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+    )
+ ))

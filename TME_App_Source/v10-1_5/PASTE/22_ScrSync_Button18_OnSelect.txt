@@ -1,0 +1,27 @@
+Set(varItemAutoSync, false);
+Set(varItemBatchNo, 0);
+Set(varLastItemNo, "0");
+
+Clear(colOfflineItems);
+
+SaveData(
+    colOfflineItems,
+    "OfflineItems_V1015_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x"))
+);
+
+ClearCollect(
+    colItemSyncInfo,
+    {
+        LastSyncDate: "2026-08-20T00:00:00Z"
+    }
+);
+
+SaveData(
+    colItemSyncInfo,
+    "ItemSyncInfo"
+);
+
+Notify(
+    "Барааны local cache бүрэн устгагдлаа.",
+    NotificationType.Success
+)

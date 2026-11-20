@@ -1,0 +1,1294 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  Бараа засвар хийх:
+    Properties:
+      Fill: =ColorValue("#F2F6F5")
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      OnVisible: |-
+        =With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess},
+         With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+               valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+               pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+            If(IsBlank(principal),
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+               !Connection.Connected,
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+                If(same && valid && pgAclState="granted" && false,Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+               pending && same && Coalesce(pgAclConnected,false),
+                If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+               !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+                With({rid:GUID()},
+                    Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+                    If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+                    Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+                    With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+                     If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                       If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(!(same && valid && false && pgAclState="granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                         !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                         IfError(
+                          With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=principal)},
+                            If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                              If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(!(same && valid && false && pgAclState="granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                                Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                                If(IsBlank(candidate.ID) || Lower(Trim(candidate.UserEmail))<>principal,
+                                     Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                                   !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                                   !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                                   Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                          If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(!(same && valid && false && pgAclState="granted"),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+            )
+         ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+        )
+      Width: =App.Width
+    Children:
+      - pgDenied396:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =76
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgAclState="checking","Эрх шалгаж байна…",Switch(pgAclState,"checking","Эрх шалгаж байна…","signIn","Microsoft 365-д нэвтэрнэ үү","readError","SharePoint-оос эрх уншиж чадсангүй","missing","Энэ нэвтрэх нэрээр эрхийн бүртгэл харагдсангүй","inactive","Эрхийн бүртгэл идэвхгүй","expired","Эрхийн хугацаа дууссан","offline","Эрх шалгахын тулд онлайн орно уу","Энэ хуудасны эрх олгогдоогүй") & " · Профайл")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            Width: =Min(320,Parent.Width-24)
+            X: =Max(12,(Parent.Width-320)/2)
+            Y: =Max(12,(Parent.Height-76)/2)
+      - Label3_8:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(28)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Барааны төрөл"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(193)*((App.Width/640))
+            X: =(24)*((App.Width/640))
+            Y: =(746)*((App.Height/1136))
+      - Label3_9:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(52)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Агуулахын байршил"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(193)*((App.Width/640))
+            X: =(24)*((App.Width/640))
+            Y: =(834)*((App.Height/1136))
+      - Label8_6:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(64)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: =If(IsBlank(varItem), "", varItem.Type)
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(203)*((App.Width/640))
+            X: =(200)*((App.Width/640))
+            Y: =(729)*((App.Height/1136))
+      - Label8_7:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(56)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(varItem),
+                  "",
+                  LookUp(
+                      'itemLedgerEntries (microsoft/analytics/v1.0)',
+                      'Item No.' = varItem.number
+                  ).'Location Code'
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(164)*((App.Width/640))
+            X: =(200)*((App.Width/640))
+            Y: =(830)*((App.Height/1136))
+      - Label3_10:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(28)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Барааны Нэр"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(193)*((App.Width/640))
+            X: =(24)*((App.Width/640))
+            Y: =(513)*((App.Height/1136))
+      - Label3_11:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(50)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Барааны Код"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(193)*((App.Width/640))
+            X: =(24)*((App.Width/640))
+            Y: =(360)*((App.Height/1136))
+      - Label8_8:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(224)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: =If(IsBlank(varItem), "", varItem.'Display Name')
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(205)*((App.Width/640))
+            X: =(177)*((App.Width/640))
+            Y: =(420)*((App.Height/1136))
+      - Label8_9:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: =If(IsBlank(varItem), "", varItem.number)
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(441)*((App.Width/640))
+            X: =(199)*((App.Width/640))
+            Y: =(350)*((App.Height/1136))
+      - txtSearch_1:
+          Control: Classic/TextInput@2.3.2
+          Properties:
+            BorderColor: =ColorValue("#BCD5C7")
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Default: =varBarcodeText
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =52*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            HintText: ="Барааны код"
+            HoverBorderColor: =RGBA(131, 24, 75, 1)
+            HoverFill: =RGBA(255, 211, 205, 1)
+            OnChange: =If(Connection.Connected,Set(varItem,LookUp('items (v2.0)',number=Trim(Self.Text)));ResetForm(Form1),Notify("Барааны мастер засахад интернет хэрэгтэй.",NotificationType.Warning))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(12)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            RadiusBottomLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(5)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(5)*(Min(App.Width/640,App.Height/1136))
+            Size: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width-48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            X: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Y: =92*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+      - Label3_12:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(28)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Хэмжих нэгж"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(193)*((App.Width/640))
+            X: =(24)*((App.Width/640))
+            Y: =(652)*((App.Height/1136))
+      - Label8_10:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(44)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  IsBlank(varItem),
+                  "",
+                  LookUp(
+                      'itemLedgerEntries (microsoft/analytics/v1.0)',
+                      'Item No.' = varItem.number
+                  ).'Unit of Measure Code'
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(164)*((App.Width/640))
+            X: =(199)*((App.Width/640))
+            Y: =(644)*((App.Height/1136))
+      - Label1:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Center
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#17382E")
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.Lato
+            Height: =56*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Барааны мэдээлэл засах"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width-48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            X: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Y: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+      - Label1_1:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Center
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Тэмдэглэсэн file -с харах"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(560)*((App.Width/640))
+            X: =(48)*((App.Width/640))
+            Y: =(193)*((App.Height/1136))
+      - Button3:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: =ColorValue("#237653")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =56*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: =If(!Connection.Connected,Notify("BC-д хадгалахад интернет хэрэгтэй.",NotificationType.Warning),IsBlank(varItem.number),Notify("Эхлээд хүчинтэй бараа сонгоно уу.",NotificationType.Warning),!Form1.Valid,Notify("Талбаруудын утгыг шалгана уу.",NotificationType.Warning),SubmitForm(Form1))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =12
+            RadiusBottomRight: =12
+            RadiusTopLeft: =12
+            RadiusTopRight: =12
+            Size: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Өөрчлөлт хадгалах"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width-180*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            X: =90*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Y: =App.Height-90*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+      - Form1:
+          Control: Form@2.4.4
+          Variant: Classic
+          Layout: Vertical
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            DataSource: ='items (v2.0)'
+            Fill: =Color.White
+            Height: =App.Height-280*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Item: =LookUp('items (v2.0)',number=varItem.number)
+            OnFailure: |-
+              =Notify("Хадгалсангүй: " & Form1.Error,NotificationType.Error)
+            OnSuccess: =Notify("Барааны өөрчлөлт BC-д хадгалагдлаа.",NotificationType.Success);ResetForm(Form1)
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width-48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            X: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Y: =162*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+          Children:
+            - No._DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="number"
+                  Default: =ThisItem.'No.'
+                  DisplayMode: =DisplayMode.View
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'number')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'number')
+                  Required: =false
+                  Update: =DataCardValue9.Text
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =0
+                Children:
+                  - DataCardKey9:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Барааны код"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue9:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage9:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible9:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            - Display Name_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="displayName"
+                  Default: =ThisItem.'Display Name'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'displayName')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'displayName')
+                  Required: =false
+                  Update: =DataCardValue10.Text
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =1
+                Children:
+                  - DataCardKey10:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Барааны нэр"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue10:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage10:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible10:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            - Display Name 2_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="displayName2"
+                  Default: =ThisItem.'Display Name 2'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'displayName2')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'displayName2')
+                  Required: =false
+                  Update: =DataCardValue11.Text
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =2
+                Children:
+                  - DataCardKey11:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Нэмэлт нэр"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue11:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage11:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible11:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            - Type_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="type"
+                  Default: =ThisItem.Type
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'type')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'type')
+                  Required: =false
+                  Update: =DataCardValue12.Text
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =3
+                Children:
+                  - DataCardKey12:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Төрөл"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue12:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage12:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible12:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            - Item Category Code_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="itemCategoryCode"
+                  Default: =ThisItem.'Item Category Code'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'itemCategoryCode')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'itemCategoryCode')
+                  Required: =false
+                  Update: =DataCardValue13.Text
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =4
+                Children:
+                  - DataCardKey13:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Ангилал"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue13:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage13:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible13:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            - Blocked_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicToggleEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="blocked"
+                  Default: =ThisItem.Blocked
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'blocked')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  Required: =false
+                  Update: =DataCardValue14.Value
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =5
+                Children:
+                  - DataCardKey14:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Идэвхгүй эсэх"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue14:
+                      Control: Classic/Toggle@2.1.0
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        TrueFill: =RGBA(211, 66, 9, 1)
+                        Width: =80*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage14:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible14:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            - GTIN_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="gtin"
+                  Default: =ThisItem.GTIN
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'gtin')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'gtin')
+                  Required: =false
+                  Update: =DataCardValue15.Text
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =6
+                Children:
+                  - DataCardKey15:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Баркод / GTIN"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue15:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage15:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible15:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            - Inventory_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicNumberEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="inventory"
+                  Default: =ThisItem.Inventory
+                  DisplayMode: =DisplayMode.View
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'inventory')
+                  Height: =126*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  Required: =false
+                  Update: =Value(DataCardValue16.Text)
+                  Width: =Parent.Width
+                  X: =0
+                  Y: =7
+                Children:
+                  - DataCardKey16:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#657C73")
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.Lato
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: ="Үлдэгдэл · зөвхөн харах"
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Wrap: =false
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - DataCardValue16:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =ColorValue("#C7DAD0")
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Color: =ColorValue("#17382E")
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Format: =TextFormat.Number
+                        Height: =48*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Tooltip: =Parent.DisplayName
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =46*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - ErrorMessage16:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =11*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =Parent.Width-40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        X: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =96*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  - StarVisible16:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =28*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =2*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                        Y: =10*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+      - Icon10:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            AccessibleLabel: ="Тооллогын нүүр рүү буцах"
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =ColorValue("#237653")
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Icon: =Icon.Home
+            OnSelect: =Navigate(ScrCountHome,ScreenTransition.Fade)
+            TabIndex: =0
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =40*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            X: =24*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Y: =App.Height-80*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+      - Arrow6:
+          Control: Arrow@2.3.0
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =RGBA(211, 66, 9, 1)
+            Height: =(64)*((App.Height/1136))
+            OnSelect: =Navigate(ScrCountHome,ScreenTransition.None)
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|edit|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(74)*((App.Width/640))
+            X: =(534)*((App.Width/640))
+            Y: =(1050)*((App.Height/1136))

@@ -1,0 +1,83 @@
+With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+ With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+       valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+       pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+    If(IsBlank(principal),
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+       !Connection.Connected,
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+        If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrDashboard',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+       pending && same && Coalesce(pgAclConnected,false),
+        If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+       !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+        With({rid:GUID()},
+            Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+            If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+            Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+            With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+             If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+               If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrDashboard',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                 !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                 IfError(
+                  With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=principal)},
+                    If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                      If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrDashboard',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                        Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                        If(IsBlank(candidate.ID) || Lower(Trim(candidate.UserEmail))<>principal,
+                             Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                           !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                           !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                           Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                  If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrDashboard',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+    )
+ ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|dashboard|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),If(!Coalesce(varDStockBuildingV17,false),
+Set(varDStockBuildingV17,true);
+With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:false},
+    IfError(
+        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);Set(varDStockReadyV17,false);
+Set(varDStockBuiltAtV17,Blank());Clear(colDStockBaseV17);
+If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));Clear(colDDiskV369);
+    IfError(LoadData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
+    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
+        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
+            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
+            Set(varDStockBuiltAtV17,_head.FetchedV369);Set(varDStockReadyV17,true)));
+    Clear(colDDiskV369)));
+        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
+            (IsEmpty(colDStockBaseV17) || false))),
+            ClearCollect(colDJoinV17,ForAll(colOfflineItems As i,{JoinNo:i.number,JoinKind:0,
+                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+            Collect(colDJoinV17,ForAll(Filter(colOfflineStock,!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
+                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+                With({_master:LookUp(g.JoinRows,JoinKind=0)},
+                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
+                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
+                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});Clear(colDLegacyV369);
+                IfError(If(Lower(User().Email)="od.u@tme.mn",LoadData(colDLegacyV369,"DashboardStockV17",true)),Clear(colDLegacyV369));
+                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
+                    Patch(r,{Cost:Blank()})));Clear(colDLegacyV369));
+            ClearCollect(colDStockBaseV17,colDCandidateV369);
+            If(_pair,Set(varDStockBuiltAtV17,Now());Set(varDStockReadyV17,true);
+If(!IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
+    Collect(colDDiskV369,colDStockBaseV17);
+    IfError(SaveData(colDDiskV369,"D369" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+    Clear(colDDiskV369))));
+        true,
+        Set(varDStockCacheErrorV17,true);false);
+    Clear(colDCandidateV369);Clear(colDJoinV17);
+    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
+    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
+        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
+Set(varDStockBuildingV17,false));
+Clear(colDLatest);Clear(colDVariance);Clear(colDStock);Clear(colDMonths);Clear(colDTop);Clear(colDTrend);Set(varDAccuracy,Blank());Set(varDPdfPendingV23,false);Set(varDView,"overview");Set(varDExport,false);Set(varDBusy,false);If(IsBlank(varDPeriod),Set(varDPeriod,"Сар"));If(IsBlank(varDIncomplete),Set(varDIncomplete,false));
+If(Coalesce(varWInitialized,false),ClearCollect(colDMinimums,colWMinimums),ClearCollect(colDMinimums,{OwnerEmail:"",ItemNo:"",LocationCode:"",Minimum:0});Clear(colDMinimums);If(!IsBlank(Host.Version),IfError(LoadData(colDMinimums,"WarehouseMinimumsV6",true),Clear(colDMinimums); false, true)));
+If(!Coalesce(varDInitialized,false),ClearCollect(colDValueHistory,{OwnerEmail:"",Day:Today(),Amount:0,LocationScope:"*"});Clear(colDValueHistory);IfError(LoadData(colDValueHistory,"DashboardValueHistoryV7",true),Clear(colDValueHistory); false, true);Set(varDInitialized,true));
+Select(dCalculate);Set(mobDashboardMenu,false)
+)
