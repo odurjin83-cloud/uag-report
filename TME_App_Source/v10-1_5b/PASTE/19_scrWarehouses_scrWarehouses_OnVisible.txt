@@ -1,0 +1,46 @@
+Set(varPerfDiagV1015,true);If(IsBlank(varCountReceiptV369.SyncKey) && !IsBlank(User().EntraObjectId),ClearCollect(colCountReceiptDiskV1015,FirstN(colOfflineInventory,0));IfError(LoadData(colCountReceiptDiskV1015,"CountReceiptV1015_" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colCountReceiptDiskV1015));If(CountRows(colCountReceiptDiskV1015)=1 && !IsBlank(First(colCountReceiptDiskV1015).SyncKey) && Lower(Trim(First(colCountReceiptDiskV1015).OwnerEmail))=Lower(Trim(User().Email)),Set(varCountReceiptV369,First(colCountReceiptDiskV1015))));UpdateContext({countOtherSitesExpanded:false});With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+ With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+       valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+       pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+    If(IsBlank(principal),
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+       !Connection.Connected,
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+        If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+       pending && same && Coalesce(pgAclConnected,false),
+        If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+       !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+        With({rid:GUID()},
+            Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+            If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+            Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+            With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+             If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+               If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                 !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                 IfError(
+                  With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=principal)},
+                    If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                      If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                        Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                        If(IsBlank(candidate.ID) || Lower(Trim(candidate.UserEmail))<>principal,
+                             Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                           !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                           !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                           Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                  If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+    )
+ ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(varShowWarehouseList,false);Set(varCountMenuV21,false);If(Connection.Connected && IsEmpty(colPLocationMaster) && IsEmpty(colWLocationMaster),IfError(ClearCollect(colPLocationMaster,'locations (v2.0)');true,false));If(Coalesce(varCountHomePickV369,false),Set(varLocationCode,Blank());Set(varLocationName,Blank());Set(varOpeningBalance,Blank());Set(varShowWarehouseList,false);Set(phoneCountItem,Blank());Set(phoneCountValue,Blank());Set(phoneCountReason,Blank());Set(phoneReasonItem,Blank());Set(phoneCountNoteOpen,false);Reset(phoneCountNote);Reset(txtCountQty_2);Reset(txtSearch_4);Reset(txtCountQty_2);Set(varCountBalanceTicket,GUID());Set(varCountLocItemV367,varItem.number);
+    ClearCollect(colCountLocationsV19,With({bySite:GroupBy(Filter(colOfflineStock,itemNo=varItem.number && !IsBlank(locationCode)),locationCode,RowsAtSite),allSites:With({master:If(!IsEmpty(colPLocationMaster),colPLocationMaster,colWLocationMaster)},
+      If(!IsEmpty(master),
+         ForAll(master As mc,{Code:mc.Code,Name:Coalesce(mc.Name,mc.Code)}),
+         ForAll(Distinct(colOfflineStock,locationCode) As lc,{Code:lc.Value,Name:lc.Value})))},
+        ForAll(Filter(allSites As site,(!IsBlank(site.Code) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(site.Code) & "|") in pgAccess.LocationCode))) As loc,
+            With({g:LookUp(bySite As gg,gg.locationCode=loc.Code)},
+              {code:loc.Code,displayName:loc.Name,
+                Qty:If(!IsBlank(g.locationCode) && CountIf(g.RowsAtSite,IsBlank(quantity))=0,Sum(g.RowsAtSite,quantity),Blank()),
+                FromLedger:false}))));
+If(!IsBlank(varItem.number),If(!IsBlank(countRequestedLocationV3611) && !IsBlank(LookUp(colCountLocationsV19,code=countRequestedLocationV3611).Qty),With({loc:LookUp(colCountLocationsV19,code=countRequestedLocationV3611)},Set(varLocationCode,loc.code);Set(varLocationName,loc.displayName);Set(varOpeningBalance,loc.Qty)),(Lower(Trim(User().Email))="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varCountLastWarehouse.owner=Lower(Trim(User().Email)) && !IsBlank(LookUp(colCountLocationsV19,code=varCountLastWarehouse.code && !IsBlank(Qty) && Qty>0 && (Lower(Trim(User().Email))="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(code) & "|") in pgAccess.LocationCode)).code),With({loc:LookUp(colCountLocationsV19,code=varCountLastWarehouse.code && !IsBlank(Qty) && Qty>0 && (Lower(Trim(User().Email))="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(code) & "|") in pgAccess.LocationCode))},Set(varLocationCode,loc.code);Set(varLocationName,loc.displayName);Set(varOpeningBalance,loc.Qty);Set(varShowWarehouseList,false)),CountRows(colCountLocationsV19)=1 && !IsBlank(First(colCountLocationsV19).Qty),Set(varLocationCode,First(colCountLocationsV19).code);Set(varLocationName,First(colCountLocationsV19).displayName);Set(varOpeningBalance,First(colCountLocationsV19).Qty),!IsEmpty(colCountLocationsV19),Set(varShowWarehouseList,true),Notify("Сонгох агуулах олдсонгүй. Өөр бараа хайх эсвэл буцах боломжтой.",NotificationType.Warning))))
+);Set(varCountHomePickV369,false);UpdateContext({countRequestedLocationV3611:Blank()})

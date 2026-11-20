@@ -1,0 +1,210 @@
+diff -ru TME_App_Source/v10-1_5/Src/ScrCameraSearch.pa.yaml TME_App_Source/v10-1_5b/Src/ScrCameraSearch.pa.yaml
+--- TME_App_Source/v10-1_5/Src/ScrCameraSearch.pa.yaml	2026-11-20 09:30:12.210384905 +0000
++++ TME_App_Source/v10-1_5b/Src/ScrCameraSearch.pa.yaml	2026-11-20 13:34:28.010108651 +0000
+@@ -332,7 +332,7 @@
+             BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+             Fill: =RGBA(0,0,0,0)
+             Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,563,452)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+-            Items: =Filter(colOfflineItems As i,!IsBlank(i.number) && (IsBlank(Trim(cSearch.Text)) || Lower(Trim(cSearch.Text)) in Lower(i.number) || Lower(Trim(cSearch.Text)) in Lower(i.displayName)) && (!varCOnlyStock || Sum(Filter(colOfflineStock,itemNo=i.number),quantity)>0))
++            Items: =Filter(colOfflineItems As i,!IsBlank(i.number) && (IsBlank(Trim(cSearch.Text)) || Lower(Trim(cSearch.Text)) in Lower(i.number) || Lower(Trim(cSearch.Text)) in Lower(i.displayName)) && (!varCOnlyStock || Sum(Filter(colOfflineStock,itemNo=i.number && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),quantity)>0))
+             TemplateFill: =RGBA(0,0,0,0)
+             TemplatePadding: =6*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+             TemplateSize: =92*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790))
+@@ -371,7 +371,7 @@
+                   RadiusTopRight: =(14)*(Min(App.Width/640,App.Height/1136))
+                   Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+                   Text: |-
+-                    =ThisItem.number & Char(10) & ThisItem.displayName & Char(10) & "Үлдэгдэл: " & Text(Sum(Filter(colOfflineStock,itemNo=ThisItem.number),quantity),"#,##0.###")
++                    =ThisItem.number & Char(10) & ThisItem.displayName & Char(10) & "Үлдэгдэл: " & Text(Sum(Filter(colOfflineStock,itemNo=ThisItem.number && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),quantity),"#,##0.###")
+                   Width: =Parent.TemplateWidth
+       - cEmpty:
+           Control: Label@2.5.1
+@@ -583,7 +583,7 @@
+             PaddingTop: =0
+             Size: =12*(Min(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366),If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Height/820,App.Height/790)))
+             Text: |-
+-              ="Үлдэгдэл: " & Text(Sum(Filter(colOfflineStock,itemNo=varCItem),quantity),"#,##0.###") & Char(10) & "Агуулах: " & Concat(Distinct(Filter(colOfflineStock,itemNo=varCItem),locationCode),Value,", ")
++              ="Үлдэгдэл: " & Text(Sum(Filter(colOfflineStock,itemNo=varCItem && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),quantity),"#,##0.###") & Char(10) & "Агуулах: " & Concat(Distinct(Filter(colOfflineStock,itemNo=varCItem && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),locationCode),Value,", ")
+             Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varCView="detail")
+             Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,366,322)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+             X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,788,22)*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,App.Width/1180,App.Width/366))
+diff -ru TME_App_Source/v10-1_5/Src/ScrCombined.pa.yaml TME_App_Source/v10-1_5b/Src/ScrCombined.pa.yaml
+--- TME_App_Source/v10-1_5/Src/ScrCombined.pa.yaml	2026-11-20 09:30:12.210811258 +0000
++++ TME_App_Source/v10-1_5b/Src/ScrCombined.pa.yaml	2026-11-20 13:34:28.016165372 +0000
+@@ -47,7 +47,7 @@
+                                    Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                           If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCombined',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+             )
+-         ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgGroup,"Агуулах");Set(pgTable,false);Set(pgDiff,false);Set(pgRank,0);Set(pgLocation,"");Set(pgReportReady,false);Reset(pgSearch);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
++         ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgGroup,"Агуулах");Set(pgTable,false);Set(pgDiff,false);Set(pgRank,0);Set(pgLocation,"");Set(pgReportReady,false);Reset(pgSearch);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(Refresh(InventoryCount),false);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));If(Coalesce(varPerfDiagV1015,false) || Lower(User().Email)="od.u@tme.mn",Notify("ДИАГ · SharePoint-оос уншсан: " & CountRows(pgRaw) & " мөр (өнөөдөр " & CountRows(Filter(pgRaw,Created>=Today())) & "), тайланд орсон: " & CountRows(pgRows) & " · ID " & Min(pgRaw,ID) & "–" & Max(pgRaw,ID),NotificationType.Information));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+         )
+       Width: =App.Width
+     Children:
+@@ -114,7 +114,7 @@
+             PaddingLeft: =10
+             Role: =%TextRole.RESERVED%.Default
+             Size: =13
+-            Text: ="Тоо таарсан мөрийн хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(IsEmpty(t),"—",Text(CountIf(t,pgVariance=0)/CountRows(t),"0.0%"))),"—")
++            Text: ="Тоо таарсан мөрийн хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(IsEmpty(t),"—",Text(100*(CountIf(t,pgVariance=0)/CountRows(t)),"0.0") & "%")),"—")
+             VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+             Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+             Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+@@ -186,7 +186,7 @@
+             PaddingLeft: =10
+             Role: =%TextRole.RESERVED%.Default
+             Size: =13
+-            Text: ="Үлдэгдлийн дүнд тоолсон барааны эзлэх хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},With({stock:Filter(colDStockBaseV17,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode) && Qty>0)},If(IsEmpty(stock) || Sum(stock,Qty*Cost)<=0,"—",Text(Sum(Filter(stock As st,!IsBlank(LookUp(t,ItemNo=st.itemNo && LocationCode=st.locationCode,ID))),Qty*Cost)/Sum(stock,Qty*Cost),"0.0%")))),"—")
++            Text: ="Үлдэгдлийн дүнд тоолсон барааны эзлэх хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},With({stock:Filter(colDStockBaseV17,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode) && Qty>0)},If(IsEmpty(stock) || Sum(stock,Qty*Cost)<=0,"—",Text(100*(Sum(Filter(stock As st,!IsBlank(LookUp(t,ItemNo=st.itemNo && LocationCode=st.locationCode,ID))),Qty*Cost)/Sum(stock,Qty*Cost)),"0.0") & "%"))),"—")
+             VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+             Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+             Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+@@ -660,7 +660,7 @@
+             HoverFill: =ColorValue("#FFF0E6")
+             OnSelect: |-
+               =If(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (Lower(User().Email)="od.u@tme.mn" || Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)))),
+-              Set(pgFrom,Today());Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
++              Set(pgFrom,Today());Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(Refresh(InventoryCount),false);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));If(Coalesce(varPerfDiagV1015,false) || Lower(User().Email)="od.u@tme.mn",Notify("ДИАГ · SharePoint-оос уншсан: " & CountRows(pgRaw) & " мөр (өнөөдөр " & CountRows(Filter(pgRaw,Created>=Today())) & "), тайланд орсон: " & CountRows(pgRows) & " · ID " & Min(pgRaw,ID) & "–" & Max(pgRaw,ID),NotificationType.Information));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+               ,
+               Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);Notify("Тайлангийн эрх эсвэл агуулахын сонголт өөрчлөгдсөн. Тайланг дахин нээнэ үү.",NotificationType.Warning)
+               )
+@@ -695,7 +695,7 @@
+             HoverFill: =ColorValue("#FFF0E6")
+             OnSelect: |-
+               =If(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (Lower(User().Email)="od.u@tme.mn" || Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)))),
+-              Set(pgFrom,DateAdd(Today(),-6,TimeUnit.Days));Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
++              Set(pgFrom,DateAdd(Today(),-6,TimeUnit.Days));Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(Refresh(InventoryCount),false);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));If(Coalesce(varPerfDiagV1015,false) || Lower(User().Email)="od.u@tme.mn",Notify("ДИАГ · SharePoint-оос уншсан: " & CountRows(pgRaw) & " мөр (өнөөдөр " & CountRows(Filter(pgRaw,Created>=Today())) & "), тайланд орсон: " & CountRows(pgRows) & " · ID " & Min(pgRaw,ID) & "–" & Max(pgRaw,ID),NotificationType.Information));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+               ,
+               Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);Notify("Тайлангийн эрх эсвэл агуулахын сонголт өөрчлөгдсөн. Тайланг дахин нээнэ үү.",NotificationType.Warning)
+               )
+@@ -730,7 +730,7 @@
+             HoverFill: =ColorValue("#FFF0E6")
+             OnSelect: |-
+               =If(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (Lower(User().Email)="od.u@tme.mn" || Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)))),
+-              Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
++              Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgRank,0);Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);IfError(Refresh(InventoryCount),false);IfError(ForAll(Sequence(DateDiff(pgFrom,Today())+1) As d,With({a:DateAdd(pgFrom,d.Value-1,TimeUnit.Days),b:DateAdd(pgFrom,d.Value,TimeUnit.Days)},If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true),ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,With({part:FirstN(Filter(InventoryCount,Created>=a && Created<b && LocationCode=w.Value),500)},If(CountRows(part)>=500,Collect(pgFullDays,{day:a}));Collect(pgRaw,part);true)))));If(!IsEmpty(pgFullDays),Notify("Нэг өдөрт 500-аас олон мөр таарсан тул нийлбэрийг харуулсангүй.",NotificationType.Warning),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));If(Coalesce(varPerfDiagV1015,false) || Lower(User().Email)="od.u@tme.mn",Notify("ДИАГ · SharePoint-оос уншсан: " & CountRows(pgRaw) & " мөр (өнөөдөр " & CountRows(Filter(pgRaw,Created>=Today())) & "), тайланд орсон: " & CountRows(pgRows) & " · ID " & Min(pgRaw,ID) & "–" & Max(pgRaw,ID),NotificationType.Information));Clear(pgRaw);Set(pgReportReady,true)),Notify(FirstError.Message,NotificationType.Error))
+               ,
+               Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);Notify("Тайлангийн эрх эсвэл агуулахын сонголт өөрчлөгдсөн. Тайланг дахин нээнэ үү.",NotificationType.Warning)
+               )
+diff -ru TME_App_Source/v10-1_5/Src/ScrItemPhotos.pa.yaml TME_App_Source/v10-1_5b/Src/ScrItemPhotos.pa.yaml
+--- TME_App_Source/v10-1_5/Src/ScrItemPhotos.pa.yaml	2026-11-20 09:30:12.216698120 +0000
++++ TME_App_Source/v10-1_5b/Src/ScrItemPhotos.pa.yaml	2026-11-20 13:34:28.010368379 +0000
+@@ -108,7 +108,7 @@
+               Set(varPhotoBusyV28,true);Set(varPhotoServerV28,Blank());Set(varPhotoMessageV28,"");
+               If(varPhotoNewItemV28<>varPhotoItemV28,Set(varPhotoNewV28,Blank());Reset(photoCameraV28);Reset(photoPickV28));
+               Set(varPhotoRecordV28,LookUp(colOfflineItems,number=varPhotoItemV28));
+-              ClearCollect(colPhotoLocationsV28,ForAll(GroupBy(Filter(colOfflineStock,itemNo=varPhotoItemV28 && !IsBlank(locationCode)),locationCode,LocationRows) As l,{Code:l.locationCode,Qty:Sum(l.LocationRows,quantity)}));
++              ClearCollect(colPhotoLocationsV28,ForAll(GroupBy(Filter(colOfflineStock,itemNo=varPhotoItemV28 && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),locationCode,LocationRows) As l,{Code:l.locationCode,Qty:Sum(l.LocationRows,quantity)}));
+               If(Connection.Connected,
+                IfError(Set(varPhotoServerV28,'PowerAppV2->Compose,Findonerecord(V3),Getanimage,fileordo...'.Run(varPhotoItemV28).picture);true,
+                Set(varPhotoMessageV28,"BC зураг татагдсангүй. Дахин шинэчилж болно.");false),
+diff -ru TME_App_Source/v10-1_5/Src/ScrReport1.pa.yaml TME_App_Source/v10-1_5b/Src/ScrReport1.pa.yaml
+--- TME_App_Source/v10-1_5/Src/ScrReport1.pa.yaml	2026-11-20 09:30:12.218757925 +0000
++++ TME_App_Source/v10-1_5b/Src/ScrReport1.pa.yaml	2026-11-20 13:34:28.014190714 +0000
+@@ -499,7 +499,7 @@
+                               PaddingRight: =(0)*((Min(App.Width,960)/640))
+                               PaddingTop: =(0)*((App.Height/1136))
+                               Size: =Max(12,(48)*(Min(Min(App.Width,960)/640,App.Height/1136)))
+-                              Text: =With({n:CountRows(Filter(colRItems,ReportCounted && !ReportInvalid))},If(n=0,"—",Text(CountRows(Filter(colRItems,ReportCounted && !ReportInvalid && ReportVariance=0))/n,"0.0%")))
++                              Text: =With({n:CountRows(Filter(colRItems,ReportCounted && !ReportInvalid))},If(n=0,"—",Text(100*(CountRows(Filter(colRItems,ReportCounted && !ReportInvalid && ReportVariance=0))/n),"0.0") & "%"))
+                               Visible: =(true) && varPersonalReportScope=(Lower(Trim(User().Email)) & ":" & If(Lower(User().Email)="od.u@tme.mn","*",pgAccess.LocationCode))
+                               Width: =(528)*((Min(App.Width,960)/640))
+                               X: =(28)*((Min(App.Width,960)/640))
+@@ -1722,7 +1722,7 @@
+                               PaddingRight: =(0)*((Min(App.Width,960)/640))
+                               PaddingTop: =(0)*((App.Height/1136))
+                               Size: =Max(12,(29)*(Min(Min(App.Width,960)/640,App.Height/1136)))
+-                              Text: =If(IsEmpty(colRStock) || IsEmpty(colRItems),"—",Text(CountRows(colRLatest)/CountRows(colRItems),"0%"))
++                              Text: =If(IsEmpty(colRStock) || IsEmpty(colRItems),"—",Text(100*(CountRows(colRLatest)/CountRows(colRItems)),"0") & "%")
+                               Visible: =(true) && varPersonalReportScope=(Lower(Trim(User().Email)) & ":" & If(Lower(User().Email)="od.u@tme.mn","*",pgAccess.LocationCode))
+                               Width: =(230)*((Min(App.Width,960)/640))
+                               X: =(24)*((Min(App.Width,960)/640))
+@@ -2901,8 +2901,8 @@
+             Role: =%TextRole.RESERVED%.Default
+             Size: =15*Min(App.Width/360,App.Height/700)
+             TabIndex: =0
+-            Text: =Text(Last(FirstN(colRptVariance,1)).ReportVariance,"+#,##0.##;-#,##0.##;0")
+-            Tooltip: =Text(Last(FirstN(colRptVariance,1)).ReportVariance,"+#,##0.##;-#,##0.##;0")
++            Text: =With({_nfmt:Last(FirstN(colRptVariance,1)).ReportVariance},If(_nfmt>0,"+","") & Text(_nfmt,If(Mod(_nfmt,1)=0,"#,##0","#,##0.##")))
++            Tooltip: =With({_nfmt:Last(FirstN(colRptVariance,1)).ReportVariance},If(_nfmt>0,"+","") & Text(_nfmt,If(Mod(_nfmt,1)=0,"#,##0","#,##0.##")))
+             VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+             Visible: =(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|report|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((App.Width<First(App.SizeBreakpoints).Value && !varRptSettings && !varRptWarehouse && !varRptExportDialog && !varRptDetail && !varRptPdfPending && varReportTab="Хураангуй") && (CountRows(colRptVariance)>0))) && varPersonalReportScope=(Lower(Trim(User().Email)) & ":" & If(Lower(User().Email)="od.u@tme.mn","*",pgAccess.LocationCode))
+             Width: =Parent.Width*58/360
+@@ -3051,8 +3051,8 @@
+             Role: =%TextRole.RESERVED%.Default
+             Size: =15*Min(App.Width/360,App.Height/700)
+             TabIndex: =0
+-            Text: =Text(Last(FirstN(colRptVariance,2)).ReportVariance,"+#,##0.##;-#,##0.##;0")
+-            Tooltip: =Text(Last(FirstN(colRptVariance,2)).ReportVariance,"+#,##0.##;-#,##0.##;0")
++            Text: =With({_nfmt:Last(FirstN(colRptVariance,2)).ReportVariance},If(_nfmt>0,"+","") & Text(_nfmt,If(Mod(_nfmt,1)=0,"#,##0","#,##0.##")))
++            Tooltip: =With({_nfmt:Last(FirstN(colRptVariance,2)).ReportVariance},If(_nfmt>0,"+","") & Text(_nfmt,If(Mod(_nfmt,1)=0,"#,##0","#,##0.##")))
+             VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+             Visible: =(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|report|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((App.Width<First(App.SizeBreakpoints).Value && !varRptSettings && !varRptWarehouse && !varRptExportDialog && !varRptDetail && !varRptPdfPending && varReportTab="Хураангуй") && (CountRows(colRptVariance)>1))) && varPersonalReportScope=(Lower(Trim(User().Email)) & ":" & If(Lower(User().Email)="od.u@tme.mn","*",pgAccess.LocationCode))
+             Width: =Parent.Width*58/360
+@@ -3175,8 +3175,8 @@
+             Role: =%TextRole.RESERVED%.Default
+             Size: =15*Min(App.Width/360,App.Height/700)
+             TabIndex: =0
+-            Text: =Text(Last(FirstN(colRptVariance,3)).ReportVariance,"+#,##0.##;-#,##0.##;0")
+-            Tooltip: =Text(Last(FirstN(colRptVariance,3)).ReportVariance,"+#,##0.##;-#,##0.##;0")
++            Text: =With({_nfmt:Last(FirstN(colRptVariance,3)).ReportVariance},If(_nfmt>0,"+","") & Text(_nfmt,If(Mod(_nfmt,1)=0,"#,##0","#,##0.##")))
++            Tooltip: =With({_nfmt:Last(FirstN(colRptVariance,3)).ReportVariance},If(_nfmt>0,"+","") & Text(_nfmt,If(Mod(_nfmt,1)=0,"#,##0","#,##0.##")))
+             VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+             Visible: =(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|report|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && ((App.Width<First(App.SizeBreakpoints).Value && !varRptSettings && !varRptWarehouse && !varRptExportDialog && !varRptDetail && !varRptPdfPending && varReportTab="Хураангуй") && (CountRows(colRptVariance)>2))) && varPersonalReportScope=(Lower(Trim(User().Email)) & ":" & If(Lower(User().Email)="od.u@tme.mn","*",pgAccess.LocationCode))
+             Width: =Parent.Width*58/360
+diff -ru TME_App_Source/v10-1_5/Src/scrWarehouses.pa.yaml TME_App_Source/v10-1_5b/Src/scrWarehouses.pa.yaml
+--- TME_App_Source/v10-1_5/Src/scrWarehouses.pa.yaml	2026-11-20 09:30:12.223645630 +0000
++++ TME_App_Source/v10-1_5b/Src/scrWarehouses.pa.yaml	2026-11-20 13:34:28.017620667 +0000
+@@ -13,7 +13,7 @@
+       Height: =App.Height
+       LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+       OnVisible: |-
+-        =If(IsBlank(varCountReceiptV369.SyncKey) && !IsBlank(User().EntraObjectId),ClearCollect(colCountReceiptDiskV1015,FirstN(colOfflineInventory,0));IfError(LoadData(colCountReceiptDiskV1015,"CountReceiptV1015_" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colCountReceiptDiskV1015));If(CountRows(colCountReceiptDiskV1015)=1 && !IsBlank(First(colCountReceiptDiskV1015).SyncKey) && Lower(Trim(First(colCountReceiptDiskV1015).OwnerEmail))=Lower(Trim(User().Email)),Set(varCountReceiptV369,First(colCountReceiptDiskV1015))));UpdateContext({countOtherSitesExpanded:false});With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
++        =Set(varPerfDiagV1015,true);If(IsBlank(varCountReceiptV369.SyncKey) && !IsBlank(User().EntraObjectId),ClearCollect(colCountReceiptDiskV1015,FirstN(colOfflineInventory,0));IfError(LoadData(colCountReceiptDiskV1015,"CountReceiptV1015_" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colCountReceiptDiskV1015));If(CountRows(colCountReceiptDiskV1015)=1 && !IsBlank(First(colCountReceiptDiskV1015).SyncKey) && Lower(Trim(First(colCountReceiptDiskV1015).OwnerEmail))=Lower(Trim(User().Email)),Set(varCountReceiptV369,First(colCountReceiptDiskV1015))));UpdateContext({countOtherSitesExpanded:false});With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+          With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+                valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+                pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+@@ -1155,7 +1155,7 @@
+               =If(IsBlank(varOpeningBalance) || !(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance && With({cur:Filter(colOfflineStock As stock,stock.itemNo=varItem.number && stock.locationCode=varLocationCode)},
+                      If(IsEmpty(cur) || CountIf(cur,IsBlank(quantity))>0,
+                         Coalesce(LookUp(colCountLocationsV19,code=varLocationCode,FromLedger),false),
+-                        Sum(cur,quantity)=varOpeningBalance))),"—",Text(varOpeningBalance,"0.###"))
++                        Sum(cur,quantity)=varOpeningBalance))),"—",With({_nfmt:varOpeningBalance},Text(_nfmt,If(Mod(_nfmt,1)=0,"0","0.###"))))
+             Tooltip: =Self.Text
+             Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (!IsBlank(varItem.number) && !varShowWarehouseList && !varCountMenuV21)
+             Width: =(80)*Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360
+@@ -1272,7 +1272,7 @@
+             PaddingRight: =0
+             PaddingTop: =0
+             Size: =16*Min(Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360,Min(App.Height,900*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/720)
+-            Text: =If(IsBlank(varOpeningBalance) || !IsNumeric(txtCountQty_2.Text),"—",With({d:Value(txtCountQty_2.Text)-varOpeningBalance},If(d<0,"−",d>0,"+","") & Text(Abs(d),"0.###")))
++            Text: =If(IsBlank(varOpeningBalance) || !IsNumeric(txtCountQty_2.Text),"—",With({d:Value(txtCountQty_2.Text)-varOpeningBalance},If(d<0,"−",d>0,"+","") & With({_nfmt:Abs(d)},Text(_nfmt,If(Mod(_nfmt,1)=0,"0","0.###")))))
+             Tooltip: =Self.Text
+             Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (!IsBlank(varItem.number) && !varShowWarehouseList && !varCountMenuV21)
+             Width: =(80)*Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360
+@@ -1368,7 +1368,7 @@
+             HoverColor: =Color.White
+             HoverFill: =ColorValue("#D34C0F")
+             OnSelect: |-
+-              =If(!IsBlank(varCountReceiptV369.SyncKey),If(!((Lower(User().Email)="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varCountReceiptV369.OwnerEmail=Lower(Trim(User().Email)) && (!IsBlank(varCountReceiptV369.LocationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(varCountReceiptV369.LocationCode) & "|") in pgAccess.LocationCode))),Notify("Өмнөх тооллогын агуулахын эрхийг шалгана уу.",NotificationType.Error),Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || !Coalesce(varCountLoadDoneV21,false),Notify("Тооллогын өгөгдөл боловсруулж байна.",NotificationType.Information),!Connection.Connected,Notify("Өмнөх тооллогыг шалгахын тулд интернэтэд холбогдоно уу.",NotificationType.Warning),Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);With({p:varCountReceiptV369},Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
++              =Set(varPerfT0V1015,Now());Set(varPerfT1V1015,Blank());If(!IsBlank(varCountReceiptV369.SyncKey),If(!((Lower(User().Email)="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varCountReceiptV369.OwnerEmail=Lower(Trim(User().Email)) && (!IsBlank(varCountReceiptV369.LocationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(varCountReceiptV369.LocationCode) & "|") in pgAccess.LocationCode))),Notify("Өмнөх тооллогын агуулахын эрхийг шалгана уу.",NotificationType.Error),Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || !Coalesce(varCountLoadDoneV21,false),Notify("Тооллогын өгөгдөл боловсруулж байна.",NotificationType.Information),!Connection.Connected,Notify("Өмнөх тооллогыг шалгахын тулд интернэтэд холбогдоно уу.",NotificationType.Warning),Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);With({p:varCountReceiptV369},Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
+               Set(varCountCloudTitleV369,varCountReceiptV369.Title);
+               With({p:varCountReceiptV369},
+                IfError(
+@@ -1432,7 +1432,7 @@
+               ClearCollect(colCountDiskV21,{Schema:21,Owner:varCountOwner,Payload:JSON(colOfflineInventory,JSONFormat.Compact)});
+               SaveData(colCountDiskV21,varCountCacheKey)),
+                 Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message),
+-                Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varCountSavedV21,true));
++                Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varCountSavedV21,true);Set(varPerfT1V1015,Now()));
+                If(!varCountSavedV21 && Connection.Connected,Set(varCountReceiptV369,LookUp(colOfflineInventory,SyncKey=_key && OwnerEmail=varCountOwner));ClearCollect(colCountReceiptDiskV1015,varCountReceiptV369);If(!IsBlank(varCountReceiptV369.SyncKey) && !IsBlank(User().EntraObjectId) && IfError(SaveData(colCountReceiptDiskV1015,"CountReceiptV1015_" & Substitute(Text(User().EntraObjectId),"-",""));true,false),Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
+               Set(varCountCloudTitleV369,varCountReceiptV369.Title);
+               With({p:varCountReceiptV369},
+@@ -1470,7 +1470,7 @@
+                 RemoveIf(colOfflineInventory,SyncKey=_key);
+                 Notify(If(IsBlank(varCountReceiptV369.SyncKey),"Хадгалагдсангүй. Оруулсан тоо хэвээр үлдсэн. ","SharePoint-ийн хариу тодорхойгүй байна. Өмнөх тооллогыг дахин шалгаж хадгална уу. ") & If(Connection.Connected,Coalesce(varCountCloudSaveErrorV21,varCountStorageError),varCountStorageError),NotificationType.Error)));
+               Set(varCountUploadQueue,Connection.Connected && varCountCacheReady && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));Set(varCountSaving,false))
+-              ,Notify("Энэ агуулахад тооллого хадгалах эрхгүй.",NotificationType.Error)))
++              ,Notify("Энэ агуулахад тооллого хадгалах эрхгүй.",NotificationType.Error)));If(Coalesce(varPerfDiagV1015,false) && !IsBlank(varPerfT1V1015),Collect(colPerfV1015,{At:varPerfT0V1015,LocalMs:DateDiff(varPerfT0V1015,varPerfT1V1015,TimeUnit.Milliseconds),TotalMs:DateDiff(varPerfT0V1015,Now(),TimeUnit.Milliseconds),HistoryRows:CountRows(colOfflineInventory)});IfError(SaveData(colPerfV1015,"PerfV1015_" & Substitute(Text(User().EntraObjectId),"-","")),false);If(Mod(CountRows(colPerfV1015),20)=0,With({w:Sort(LastN(colPerfV1015,20),TotalMs)},Notify("ХУРД · сүүлийн 20 хадгалалт: медиан " & Index(w,10).TotalMs & " мс, хамгийн удаан " & Last(w).TotalMs & " мс (локал бичилт " & Max(w,LocalMs) & " мс), түүх " & Last(colPerfV1015).HistoryRows & " мөр",NotificationType.Information))))
+             PaddingBottom: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Height/820),(App.Height/1136)))
+             PaddingLeft: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))
+             PaddingRight: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))

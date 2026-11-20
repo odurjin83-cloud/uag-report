@@ -1,0 +1,1 @@
+ThisItem.number & Char(10) & ThisItem.displayName & Char(10) & "Үлдэгдэл: " & Text(Sum(Filter(colOfflineStock,itemNo=ThisItem.number && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),quantity),"#,##0.###")

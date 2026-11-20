@@ -1,0 +1,1 @@
+If(IsBlank(varOpeningBalance) || !IsNumeric(txtCountQty_2.Text),"—",With({d:Value(txtCountQty_2.Text)-varOpeningBalance},If(d<0,"−",d>0,"+","") & With({_nfmt:Abs(d)},Text(_nfmt,If(Mod(_nfmt,1)=0,"0","0.###")))))

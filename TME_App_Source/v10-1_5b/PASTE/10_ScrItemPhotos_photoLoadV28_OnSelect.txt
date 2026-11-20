@@ -1,0 +1,10 @@
+If(!varPhotoBusyV28 && !IsBlank(varPhotoItemV28),
+Set(varPhotoBusyV28,true);Set(varPhotoServerV28,Blank());Set(varPhotoMessageV28,"");
+If(varPhotoNewItemV28<>varPhotoItemV28,Set(varPhotoNewV28,Blank());Reset(photoCameraV28);Reset(photoPickV28));
+Set(varPhotoRecordV28,LookUp(colOfflineItems,number=varPhotoItemV28));
+ClearCollect(colPhotoLocationsV28,ForAll(GroupBy(Filter(colOfflineStock,itemNo=varPhotoItemV28 && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),locationCode,LocationRows) As l,{Code:l.locationCode,Qty:Sum(l.LocationRows,quantity)}));
+If(Connection.Connected,
+ IfError(Set(varPhotoServerV28,'PowerAppV2->Compose,Findonerecord(V3),Getanimage,fileordo...'.Run(varPhotoItemV28).picture);true,
+ Set(varPhotoMessageV28,"BC зураг татагдсангүй. Дахин шинэчилж болно.");false),
+ Set(varPhotoMessageV28,"BC-ийн зураг харах болон солиход интернет хэрэгтэй."));
+Set(varPhotoTabV28,If(!IsBlank(varPhotoNewV28),"new","bc"));Set(varPhotoBusyV28,false))

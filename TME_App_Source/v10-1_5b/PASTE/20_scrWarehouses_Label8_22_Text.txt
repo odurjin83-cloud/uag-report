@@ -1,0 +1,4 @@
+If(IsBlank(varOpeningBalance) || !(varCountLocItemV367=varItem.number && !IsBlank(LookUp(colCountLocationsV19,code=varLocationCode)) && LookUp(colCountLocationsV19,code=varLocationCode,Qty)=varOpeningBalance && With({cur:Filter(colOfflineStock As stock,stock.itemNo=varItem.number && stock.locationCode=varLocationCode)},
+       If(IsEmpty(cur) || CountIf(cur,IsBlank(quantity))>0,
+          Coalesce(LookUp(colCountLocationsV19,code=varLocationCode,FromLedger),false),
+          Sum(cur,quantity)=varOpeningBalance))),"—",With({_nfmt:varOpeningBalance},Text(_nfmt,If(Mod(_nfmt,1)=0,"0","0.###"))))

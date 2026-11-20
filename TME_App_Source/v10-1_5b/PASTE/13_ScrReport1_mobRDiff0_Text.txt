@@ -1,0 +1,1 @@
+With({_nfmt:Last(FirstN(colRptVariance,1)).ReportVariance},If(_nfmt>0,"+","") & Text(_nfmt,If(Mod(_nfmt,1)=0,"#,##0","#,##0.##")))

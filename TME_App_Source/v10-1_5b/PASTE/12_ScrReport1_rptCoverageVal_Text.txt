@@ -1,0 +1,1 @@
+If(IsEmpty(colRStock) || IsEmpty(colRItems),"—",Text(100*(CountRows(colRLatest)/CountRows(colRItems)),"0") & "%")

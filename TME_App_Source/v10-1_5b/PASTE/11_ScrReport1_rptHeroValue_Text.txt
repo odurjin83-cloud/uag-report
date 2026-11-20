@@ -1,0 +1,1 @@
+With({n:CountRows(Filter(colRItems,ReportCounted && !ReportInvalid))},If(n=0,"—",Text(100*(CountRows(Filter(colRItems,ReportCounted && !ReportInvalid && ReportVariance=0))/n),"0.0") & "%"))

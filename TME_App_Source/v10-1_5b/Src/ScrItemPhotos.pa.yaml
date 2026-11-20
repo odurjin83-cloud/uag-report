@@ -1,0 +1,805 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ScrItemPhotos:
+    Properties:
+      Fill: =ColorValue("#F3F6F2")
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      OnHidden: =Set(varPhotoZoomV28,false);Set(varPhotoConfirmV28,false)
+      OnVisible: |-
+        =With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+         With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+               valid:!IsBlank(prior.ID) && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+               pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+            If(IsBlank(principal),
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+               !Connection.Connected,
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+                If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrItemPhotos',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+               pending && same && Coalesce(pgAclConnected,false),
+                If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+               !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+                With({rid:GUID()},
+                    Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+                    If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+                    Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+                    With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+                     If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                       If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrItemPhotos',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                         !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                         IfError(
+                          With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages" && UserEmail=principal)},
+                            If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                              If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrItemPhotos',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                                Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                                If(IsBlank(candidate.ID) || Lower(Trim(candidate.UserEmail))<>principal,
+                                     Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                                   !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                                   !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                                   Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                          If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrItemPhotos',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+            )
+         ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(varPhotoSourceV29,"");Set(varPhotoUploadDataV29,Blank());Set(varPhotoBusyV28,false);Set(varPhotoZoomV28,false);Set(varPhotoConfirmV28,false);Set(varPhotoTabV28,"bc");Set(varPhotoMessageV28,"");
+        Set(varPhotoItemV28,Coalesce(varPhotoRequestedV28,""));Set(varPhotoServerV28,Blank());Set(varPhotoNewV28,Blank());Set(varPhotoNewItemV28,"");
+        Set(varPhotoRecordV28,LookUp(colOfflineItems,number=varPhotoItemV28));
+        Reset(photoSearchV28);Reset(photoCameraV28);Reset(photoPickV28);Set(varPhotoSearchV28,IsBlank(varPhotoItemV28));
+        If(!IsBlank(varPhotoItemV28),Select(photoLoadV28))
+        )
+      Width: =App.Width
+    Children:
+      - pgDenied220:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =76
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgAclState="checking","Эрх шалгаж байна…",Switch(pgAclState,"checking","Эрх шалгаж байна…","signIn","Microsoft 365-д нэвтэрнэ үү","readError","SharePoint-оос эрх уншиж чадсангүй","missing","Энэ нэвтрэх нэрээр эрхийн бүртгэл харагдсангүй","inactive","Эрхийн бүртгэл идэвхгүй","expired","Эрхийн хугацаа дууссан","offline","Эрх шалгахын тулд онлайн орно уу","Энэ хуудасны эрх олгогдоогүй") & " · Профайл")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            Width: =Min(320,Parent.Width-24)
+            X: =Max(12,(Parent.Width-320)/2)
+            Y: =Max(12,(Parent.Height-76)/2)
+      - photoLoadV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =1
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: |-
+              =If(!varPhotoBusyV28 && !IsBlank(varPhotoItemV28),
+              Set(varPhotoBusyV28,true);Set(varPhotoServerV28,Blank());Set(varPhotoMessageV28,"");
+              If(varPhotoNewItemV28<>varPhotoItemV28,Set(varPhotoNewV28,Blank());Reset(photoCameraV28);Reset(photoPickV28));
+              Set(varPhotoRecordV28,LookUp(colOfflineItems,number=varPhotoItemV28));
+              ClearCollect(colPhotoLocationsV28,ForAll(GroupBy(Filter(colOfflineStock,itemNo=varPhotoItemV28 && !IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode)),locationCode,LocationRows) As l,{Code:l.locationCode,Qty:Sum(l.LocationRows,quantity)}));
+              If(Connection.Connected,
+               IfError(Set(varPhotoServerV28,'PowerAppV2->Compose,Findonerecord(V3),Getanimage,fileordo...'.Run(varPhotoItemV28).picture);true,
+               Set(varPhotoMessageV28,"BC зураг татагдсангүй. Дахин шинэчилж болно.");false),
+               Set(varPhotoMessageV28,"BC-ийн зураг харах болон солиход интернет хэрэгтэй."));
+              Set(varPhotoTabV28,If(!IsBlank(varPhotoNewV28),"new","bc"));Set(varPhotoBusyV28,false))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =""
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =1
+      - photoTitleV28:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#163D35")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.055
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =30*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Барааны зураг"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width*0.65
+            X: =App.Width*0.15
+            Y: =App.Height*0.035
+      - photoBackV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,If(varPhotoBusyV28,DisplayMode.Disabled,DisplayMode.Edit))
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.06
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =If(varPhotoReturnV28="count",Navigate(scrWarehouses,ScreenTransition.Fade),Navigate(ScrCountHome,ScreenTransition.Fade))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="‹"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width*0.09
+            X: =App.Width*0.04
+            Y: =App.Height*0.03
+      - photoSubtitleV28:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#687F79")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.035
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =13*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =If(Connection.Connected,"ОНЛАЙН · BC барааны зураг","ОФФЛАЙН · Зураг илгээхэд интернет хэрэгтэй")
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width*0.81
+            X: =App.Width*0.15
+            Y: =App.Height*0.091
+      - photoSearchV28:
+          Control: Classic/TextInput@2.3.2
+          Properties:
+            AccessibleLabel: ="Зураг харах барааны код эсвэл нэр"
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =1
+            Color: =ColorValue("#163D35")
+            Default: =varPhotoItemV28
+            DelayOutput: =true
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,If(varPhotoBusyV28,DisplayMode.Disabled,DisplayMode.Edit))
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#237653")
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.06
+            HintText: ="Барааны код эсвэл нэрээр хайх"
+            HoverBorderColor: =RGBA(131, 24, 75, 1)
+            HoverFill: =RGBA(255, 211, 205, 1)
+            OnChange: =Set(varPhotoSearchV28,true)
+            OnSelect: =Set(varPhotoSearchV28,true)
+            PaddingBottom: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Height/820),(App.Height/1136)))
+            PaddingLeft: =(12)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))
+            PaddingRight: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))
+            PaddingTop: =(5)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Height/820),(App.Height/1136)))
+            RadiusBottomLeft: =12
+            RadiusBottomRight: =12
+            RadiusTopLeft: =12
+            RadiusTopRight: =12
+            Size: =20*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width*0.76
+            X: =App.Width*0.04
+            Y: =App.Height*0.145
+      - photoFindV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#246C57")
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.06
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =If(!(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28),If(IsBlank(LookUp(colOfflineItems,number=Trim(photoSearchV28.Text))),Set(varPhotoSearchV28,true),Set(varPhotoItemV28,Trim(photoSearchV28.Text));Set(varPhotoSearchV28,false);Select(photoLoadV28)))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Хайх"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width*0.14
+            X: =App.Width*0.82
+            Y: =App.Height*0.145
+      - photoItemV28:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#163D35")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.055,0.062)*App.Height
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =19*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =If(IsBlank(varPhotoItemV28),"Эхлээд бараагаа сонгоорой",varPhotoItemV28 & " · " & Coalesce(varPhotoRecordV28.displayName,""))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.92,0.92)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.04,0.04)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.215,0.215)*App.Height
+      - photoBCTabV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =If(varPhotoTabV28="bc",Color.White,ColorValue("#163D35"))
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =If(varPhotoTabV28="bc",ColorValue("#246C57"),Color.White)
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.055,0.05)*App.Height
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Set(varPhotoTabV28,"bc")
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="BC-д байгаа зураг"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.25,0.45)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.04,0.04)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.28,0.425)*App.Height
+      - photoNewTabV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =If(varPhotoTabV28="new",Color.White,ColorValue("#163D35"))
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =If(varPhotoTabV28="new",ColorValue("#246C57"),Color.White)
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.055,0.05)*App.Height
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Set(varPhotoTabV28,"new")
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Шинэ зураг"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.25,0.45)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.31,0.51)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.28,0.425)*App.Height
+      - photoPreviewV28:
+          Control: Image@2.2.3
+          Properties:
+            AccessibleLabel: ="Зураг · дарж томруулна"
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =ColorValue("#E7EDE7")
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.53,0.22)*App.Height
+            Image: =If(varPhotoTabV28="new",varPhotoNewV28,varPhotoServerV28)
+            OnSelect: =If(!varPhotoBusyV28 && !varPhotoConfirmV28 && !IsBlank(Self.Image),Set(varPhotoZoomV28,true))
+            TabIndex: =0
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.52,0.92)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.04,0.04)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.35,0.49)*App.Height
+      - photoEmptyV28:
+          Control: Label@2.5.1
+          Properties:
+            Align: =Align.Center
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#687F79")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.12,0.1)*App.Height
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =If(varPhotoBusyV28,"Зургийг уншиж байна…",IsBlank(varPhotoItemV28),"Бараагаа хайж сонгоно уу",varPhotoTabV28="new","Зураг аваарай эсвэл төхөөрөмжөөсөө сонгоорой","Энэ бараанд BC зураг хараахан алга")
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (IsBlank(photoPreviewV28.Image))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.4,0.76)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.1,0.12)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.53,0.54)*App.Height
+      - photoCameraV28:
+          Control: AddMedia@2.2.1
+          Properties:
+            AccessibleLabel: ="Зураг авах"
+            Align: =Align.Right
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            ChangePictureText: ="Зураг авах"
+            Color: =ColorValue("#163D35")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,If(varPhotoBusyV28 || IsBlank(varPhotoItemV28),DisplayMode.Disabled,DisplayMode.Edit))
+            Fill: =Color.White
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.08,0.06)*App.Height
+            OnChange: |-
+              =If(!IsBlank(photoCameraV28.Media),
+              Set(varPhotoSourceV29,"camera");Set(varPhotoNewV28,photoCameraV28.Media);
+              Set(varPhotoNewItemV28,varPhotoItemV28);Set(varPhotoTabV28,"new");
+              Set(varPhotoMessageV28,"Зураг бэлэн. Preview-гээ шалгаад BC-д зураг илгээх товчийг дарна уу."))
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Зураг авах"
+            UseMobileCamera: =true
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.17,0.45)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.6,0.04)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.55,0.73)*App.Height
+      - photoPickV28:
+          Control: AddMedia@2.2.1
+          Properties:
+            AccessibleLabel: ="Файлаас сонгох"
+            Align: =Align.Right
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            ChangePictureText: ="Файлаас сонгох"
+            Color: =ColorValue("#163D35")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,If(varPhotoBusyV28 || IsBlank(varPhotoItemV28),DisplayMode.Disabled,DisplayMode.Edit))
+            Fill: =Color.White
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.08,0.06)*App.Height
+            OnChange: |-
+              =If(!IsBlank(photoPickV28.Media),
+              Set(varPhotoSourceV29,"file");Set(varPhotoNewV28,photoPickV28.Media);
+              Set(varPhotoNewItemV28,varPhotoItemV28);Set(varPhotoTabV28,"new");
+              Set(varPhotoMessageV28,"Зураг бэлэн. Preview-гээ шалгаад BC-д зураг илгээх товчийг дарна уу."))
+            Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Файлаас сонгох"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.17,0.45)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.79,0.51)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.55,0.73)*App.Height
+      - photoStatusV28:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#687F79")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.11,0.075)*App.Height
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =15*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =Coalesce(varPhotoMessageV28,If(varPhotoBusyV28,"Зургийг уншиж байна…",IsBlank(varPhotoItemV28),"Бараагаа сонгоно уу.",IsBlank(varPhotoServerV28) && IsBlank(varPhotoNewV28),"BC зураг алга. Зураг авах эсвэл файлаас сонгоно уу.","Зураг дээр дарж томруулж үзнэ. Upload нь BC барааны үндсэн зургийг шинэчилнэ."))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.36,0.92)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.6,0.04)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.65,0.8)*App.Height
+      - photoUploadV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,If(varPhotoBusyV28 || !Connection.Connected || IsBlank(varPhotoItemV28) || IsBlank(varPhotoNewV28),DisplayMode.Disabled,DisplayMode.Edit))
+            Fill: =ColorValue("#F16535")
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.09,0.065)*App.Height
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: |-
+              =If(!varPhotoBusyV28 && !IsBlank(varPhotoNewV28) && varPhotoNewItemV28=varPhotoItemV28,
+              Set(varPhotoTabV28,"new");Set(varPhotoConfirmV28,true))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =If(varPhotoBusyV28,"Түр хүлээнэ үү…","BC-д зураг илгээх  ↑")
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.36,0.67)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.6,0.04)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.79,0.89)*App.Height
+      - photoRefreshV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,If(varPhotoBusyV28 || !Connection.Connected || IsBlank(varPhotoItemV28),DisplayMode.Disabled,DisplayMode.Edit))
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.06,0.065)*App.Height
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Select(photoLoadV28)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =16*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Шинэчлэх"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.2,0.23)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.36,0.73)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.9,0.89)*App.Height
+      - photoInfoV28:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#163D35")
+            Fill: =ColorValue("#E4EEE6")
+            Font: =Font.'Open Sans'
+            Height: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.23,0.125)*App.Height
+            PaddingBottom: =0
+            PaddingLeft: =Self.Width*0.035
+            PaddingRight: =Self.Width*0.035
+            PaddingTop: =Self.Height*0.06
+            Size: =16*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: |-
+              =If(IsBlank(varPhotoItemV28),"Бараа сонгоход үзүүлэлтүүд энд харагдана", "Нэгж: " & Coalesce(varPhotoRecordV28.unitOfMeasure,"—") & "  ·  Ангилал: " & Coalesce(varPhotoRecordV28.itemCategory,"—") & Char(10) & "Үлдэгдэл: " & Text(Sum(colPhotoLocationsV28,Qty),If(Mod(Sum(colPhotoLocationsV28,Qty),1)=0,"#,##0","#,##0.###")) & "  ·  Нэгж өртөг: " & Text(varPhotoRecordV28.unitCost,"#,##0.##") & " ₮" & Char(10) & "Агуулах: " & Coalesce(Concat(FirstN(colPhotoLocationsV28,3),Code & " (" & Text(Qty,If(Mod(Qty,1)=0,"#,##0","#,##0.###")) & ")",", "),"—") & If(CountRows(colPhotoLocationsV28)>3," +" & Text(CountRows(colPhotoLocationsV28)-3),""))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.36,0.92)*App.Width
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.6,0.04)*App.Width
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,0.29,0.28)*App.Height
+      - photoInfoAsOfV28:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#687F79")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.025
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =12*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: |-
+              ="Үлдэгдэл шинэчилсэн: " & If(IsBlank(varAutoStockUpdated),"—",Text(varAutoStockUpdated,"mm.dd hh:mm"))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.965
+      - photoUploadSourceV29:
+          Control: Image@2.2.3
+          Properties:
+            AccessibleLabel: ="Зураг · дарж томруулна"
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =ColorValue("#E7EDE7")
+            Height: =1
+            Image: =varPhotoNewV28
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =1
+      - photoResultsV28:
+          Control: Gallery@2.15.0
+          Variant: BrowseLayout_Vertical_OneTextVariant_ver5.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =1
+            DisplayMode: =If(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =Color.White
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Height: =App.Height*0.44
+            Items: =FirstN(Filter(colOfflineItems,Trim(photoSearchV28.Text) in number || Trim(photoSearchV28.Text) in displayName),6)
+            OnSelect: =If(!(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28),Set(varPhotoItemV28,ThisItem.number);Set(varPhotoSearchV28,false);Reset(photoSearchV28);Select(photoLoadV28))
+            TemplateSize: =App.Height*0.065
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varPhotoSearchV28 && !IsBlank(Trim(photoSearchV28.Text)))
+            Width: =App.Width*0.92
+            X: =App.Width*0.04
+            Y: =App.Height*0.21
+          Children:
+            - photoResultlabel1V28:
+                Control: Label@2.5.1
+                Properties:
+                  BorderColor: =RGBA(255, 255, 255, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#163D35")
+                  Fill: =Color.White
+                  FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Font: =Font.Lato
+                  FontWeight: =If(ThisItem.IsSelected, FontWeight.Semibold, FontWeight.Normal)
+                  Height: =Parent.TemplateHeight
+                  OnSelect: =If(!(varPhotoBusyV28 || varPhotoConfirmV28 || varPhotoZoomV28),Set(varPhotoItemV28,ThisItem.number);Set(varPhotoSearchV28,false);Reset(photoSearchV28);Select(photoLoadV28))
+                  PaddingBottom: =0
+                  PaddingLeft: =0
+                  PaddingRight: =0
+                  PaddingTop: =0
+                  Size: =18*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+                  Text: =ThisItem.number & " · " & ThisItem.displayName
+                  Width: =Parent.TemplateWidth*0.87
+                  X: =Parent.TemplateWidth*0.03
+            - photoResultrectangle2V28:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  Fill: =ColorValue("#DFE8E2")
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =((Parent.TemplateHeight/((App.Height/1136))) - (Separator1_3.Height/((App.Height/1136))))*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Visible: =false
+                  Width: =(4)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(0)*((App.Height/1136))
+            - photoResulticon3V28:
+                Control: Classic/Icon@2.5.0
+                Properties:
+                  AccessibleLabel: =ThisItem.number & " " & ThisItem.displayName
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                  Color: =ColorValue("#237653")
+                  DisplayMode: =If(varCountMenuV21,DisplayMode.Disabled,DisplayMode.Edit)
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(42)*((App.Height/1136))
+                  HoverColor: =ColorValue("#134C36")
+                  Icon: =Icon.ChevronRight
+                  OnSelect: =Select(Parent)
+                  PaddingBottom: =(12)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Height/820),(App.Height/1136)))
+                  PaddingLeft: =(12)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))
+                  PaddingRight: =(12)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Width/1180),(App.Width/640)))
+                  PaddingTop: =(12)*(If(App.Width >= First(App.SizeBreakpoints).Value && App.Width > App.Height,(App.Height/820),(App.Height/1136)))
+                  PressedColor: =ColorValue("#EF601B")
+                  TabIndex: =0
+                  Tooltip: ="View item details"
+                  Visible: =false
+                  Width: =(50)*((App.Width/640))
+                  X: =((Parent.TemplateWidth/((App.Width/640))) - (Self.Width/((App.Width/640))) - 12)*((App.Width/640))
+                  Y: =(0)*((App.Height/1136))
+            - photoResultrectangle4V28:
+                Control: Rectangle@2.3.0
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  Fill: =ColorValue("#DFE8E2")
+                  FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                  Height: =(8)*((App.Height/1136))
+                  OnSelect: =Select(Parent)
+                  Visible: =false
+                  Width: =((Parent.TemplateWidth/((App.Width/640))))*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =((Parent.TemplateHeight/((App.Height/1136))) - (Self.Height/((App.Height/1136))))*((App.Height/1136))
+      - photoZoomV28:
+          Control: Image@2.2.3
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Fill: =ColorValue("#F3F6F2")
+            Height: =App.Height*0.88
+            Image: =photoPreviewV28.Image
+            OnSelect: =Set(varPhotoZoomV28,false)
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varPhotoZoomV28)
+            Width: =App.Width
+            Y: =App.Height*0.12
+      - photoZoomBackV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =ColorValue("#246C57")
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.07
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Set(varPhotoZoomV28,false)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Зураг хаах  ×"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varPhotoZoomV28)
+            Width: =App.Width*0.28
+            X: =App.Width*0.68
+            Y: =App.Height*0.03
+      - photoConfirmCardV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =DisplayMode.View
+            Fill: =ColorValue("#E0EDE5")
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.42
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            TabIndex: =-1
+            Text: =""
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varPhotoConfirmV28)
+            Width: =App.Width*0.88
+            X: =App.Width*0.06
+            Y: =App.Height*0.30
+      - photoConfirmTextV28:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            Color: =ColorValue("#163D35")
+            Fill: =RGBA(0,0,0,0)
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.19
+            PaddingBottom: =0
+            PaddingTop: =0
+            Size: =25*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: =varPhotoItemV28 & " барааны BC үндсэн зургийг шинэ зургаар солих уу?"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varPhotoConfirmV28)
+            Width: =App.Width*0.78
+            X: =App.Width*0.11
+            Y: =App.Height*0.34
+      - photoConfirmYesV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            DisplayMode: =If(varPhotoBusyV28,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =ColorValue("#246C57")
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.08
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: |-
+              =If(!varPhotoBusyV28,
+              If(!Connection.Connected,
+              Set(varPhotoConfirmV28,false);Notify("BC-д зураг илгээхийн тулд интернетэд холбогдоно уу.",NotificationType.Warning),
+              If(IsBlank(varPhotoItemV28) || IsBlank(varPhotoNewV28) || varPhotoNewItemV28<>varPhotoItemV28,
+              Set(varPhotoConfirmV28,false);Notify("Сонгосон барааны зураг бэлэн биш байна. Зургаа дахин сонгоно уу.",NotificationType.Warning),
+              Set(varPhotoMessageV28,"Зургийг илгээхэд бэлдэж байна…");
+              IfError(
+              Set(varPhotoUploadDataV29,Substitute(JSON(photoPreviewV28.Image,JSONFormat.IncludeBinaryData),Char(34),""));
+              If(StartsWith(varPhotoUploadDataV29,"data:image") && ";base64," in Left(varPhotoUploadDataV29,100),
+              Set(varPhotoBusyV28,true);Set(varPhotoConfirmV28,false);
+              Set(varPhotoMessageV28,"BC-д зураг илгээж байна…");
+              IfError('PowerAppV2->Getrecord(V3)'.Run(varPhotoItemV28,varPhotoUploadDataV29);true,
+              Set(varPhotoMessageV28,"BC зураг илгээх алдаа: " & FirstError.Message);
+              Notify(varPhotoMessageV28,NotificationType.Error);false,
+              Set(varPhotoMessageV28,"Зураг илгээх хүсэлт амжилттай дууслаа. BC-ийн зургийг Шинэчлэх товчоор шалгаж болно.");
+              Notify("Зураг илгээлээ.",NotificationType.Success);true),
+              Set(varPhotoMessageV28,"Зургийг хөрвүүлж чадсангүй. JPG эсвэл PNG зураг дахин сонгоно уу.");
+              Notify(varPhotoMessageV28,NotificationType.Error);false),
+              Set(varPhotoMessageV28,"Зураг илгээх алдаа: " & FirstError.Message);
+              Notify(varPhotoMessageV28,NotificationType.Error);false);
+              Set(varPhotoConfirmV28,false);Set(varPhotoBusyV28,false);Set(varPhotoUploadDataV29,Blank())
+              )))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Тийм, илгээх"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varPhotoConfirmV28)
+            Width: =App.Width*0.40
+            X: =App.Width*0.49
+            Y: =App.Height*0.59
+      - photoConfirmNoV28:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorValue("#DDE6DF")
+            BorderThickness: =0
+            Color: =ColorValue("#163D35")
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisabledColor: =ColorValue("#687F79")
+            DisabledFill: =ColorValue("#E5ECE7")
+            Fill: =Color.White
+            FocusedBorderColor: =ColorValue("#F16535")
+            FocusedBorderThickness: =2
+            Font: =Font.'Open Sans'
+            Height: =App.Height*0.08
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =ColorValue("#163D35")
+            HoverFill: =ColorValue("#DCECE4")
+            OnSelect: =Set(varPhotoConfirmV28,false)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Color.White
+            PressedFill: =ColorValue("#246C57")
+            RadiusBottomLeft: =16
+            RadiusBottomRight: =16
+            RadiusTopLeft: =16
+            RadiusTopRight: =16
+            Size: =22*(If(App.Width>=First(App.SizeBreakpoints).Value && App.Width>App.Height,Min(App.Width/1180,App.Height/820),Min(App.Width/640,App.Height/1136)))
+            Text: ="Буцах"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|photo|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (varPhotoConfirmV28)
+            Width: =App.Width*0.34
+            X: =App.Width*0.11
+            Y: =App.Height*0.59
