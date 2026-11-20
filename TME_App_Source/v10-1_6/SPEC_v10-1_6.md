@@ -1,6 +1,6 @@
 # v10-1_6 — Тооллогын сесс, хурдан локал бичилт, баталгаат синк (техникийн тодорхойлолт)
 
-Суурь код: `v10-1_5` (= `v10-1_4` + offline эрх, receipt, Items кэш засвар).
+Суурь код: `v10-1_5` + `v10-1_5b` (Codex-ийн төхөөрөмжийн тест дууссаны дараах хувилбар).
 Зорилго: **15,000 код, 5–10 нярав, нэг нярав 5,000–7,000 мөр** — 5,000 дахь тооллого эхнийх шиг хурдан, нэг ч мөр алдахгүй, давхардахгүй.
 
 ---
@@ -14,12 +14,14 @@
 | Хөдөлгөөн | Бүх агуулахыг freeze хийхгүй. Тоолж буй бүс/тавиурыг түр зогсооно (zone lock). Rolling reconciliation (BC `Entry No.` watermark) — **v10-1_7** (§9). |
 | Тавиур | Тавиургүй location → `NO-BIN` автоматаар. Тавиур заавал location дээр сонголтгүй бол хадгалахгүй. Хуучин мөр → `LEGACY`. |
 | Давтан илгээлт | `ClientRowId` дээр SharePoint **Enforce unique**. Ижил ID дахин ирвэл агуулга тулгана; таарвал амжилт, таарахгүй бол локал мөрийг устгахгүй (Conflict). |
+| Хадгалалт | **SharePoint** (Power Apps premium лиценз байхгүй — 2026-11-20). Dataverse-ийг лиценз гарвал дахин үнэлнэ. Бүх бичилт стандарт connector-той flow-оор. |
 
 ## 1. Санал болгосон загварт оруулсан залруулга (Power Apps-ийн бодит хязгаар)
 1. **Серверийн шалгалт = flow.** Одоо апп SharePoint руу шууд `Patch` хийдэг (9 газар). SharePoint өөрөө "сесс Open эсэх"-ийг шалгаж чадахгүй. Тиймээс бүх илгээлт **нэг flow** (`SubmitCountEvents`)-оор явна. Flow: сессийн төлөв, эрх, idempotency, final нэгтгэлийг хийнэ.
-2. **Power Fx-д hash функц байхгүй.** `PayloadHash`-ийг апп тооцоолохгүй. Апп **canonical payload** (`JSON()` + тоо `en-US`) илгээнэ; flow hash-ийг тооцоолж хадгалаад receipt-д буцаана. Апп receipt-ийн `ClientRowId`+`PayloadHash`+`Status`-ыг локал canonical-аас flow-ийн тооцсон hash-тай тулгах боломжгүй тул **flow нь хүлээн авсан canonical payload-ийг адил гэж батласан тэмдэг** (`payloadMatch:true`) буцаана.
+2. **Hash байхгүй (Power Fx-д ч, стандарт flow-д ч SHA функц алга).** Flow canonical мөрийг (`v1|SESSION|LOC|BIN|ITEM|qty|type|countedAtUtc|caller`) **өөрөө** бүрдүүлж `CanonicalPayload`-д хадгална; дахин ирэхэд бүтэн текстээр тулгана (таарвал өмнөх үр дүн, таарахгүй бол `conflict`). `PayloadHash` багана хасагдсан. → `6a/02_FLOW_SubmitCountEvents.md`
 3. **Хаагдсан сесс рүү ирсэн офлайн мөр устахгүй.** Flow түүнийг `Events`-д `Status=RejectedSessionClosed`-оор **хадгалж** supervisor-т харуулна (audit). Апп receipt авмагц pending-ээс хасна.
-4. **Final нэгтгэлийг апп хийхгүй.** 5,000+ мөр, олон төхөөрөмж — delegation, sync хоцролт. Flow event бүрт `InventoryCountFinal`-ыг upsert хийнэ. Зэрэгцээ ажиллагааны уралдаанаас сэргийлж flow-ийн **Concurrency control = 1** (эсвэл `LogicalCountKey` unique + retry).
+4. **Final нэгтгэлийг апп хийхгүй.** Flow event бүрт `InventoryCountFinal`-ыг upsert хийнэ. **Concurrency control = 1 хэрэглэхгүй** (Power Apps-ийн дуудлага дараалалд хүлээж timeout болно) — оронд нь Final үүсгэхэд `Title` unique, шинэчлэхэд `IF-MATCH: etag`; мөргөлдвөл `retry`, дахин ирэхэд event байгаа тул зөвхөн Final-ыг idempotent байдлаар (`AClientRowId`/`BClientRowId`, `AAtUtc`/`BAtUtc`) дахин тооцно.
+7. **Лимит/хурд.** Microsoft 365 лицензийн өдрийн хүсэлтийн хязгаар бага тул flow event бүрт давталт хийхгүй: бүх логик `Select`-ээр, бичилт **нэг SharePoint `$batch`**-аар (≈1.8 action/мөр). Апп нэг batch-д нэг түлхүүрт нэг л event илгээнэ.
 5. **Incremental counter дангаараа хангалтгүй.** `varCounted+1` нь restart, олон төхөөрөмж, recount үед зөрнө. Progress = **серверийн нэгтгэл** (`GetSessionProgress`) + **локал pending тоо**. Синк бүрийн дараа серверээс шинэчилнэ.
 6. **Rolling reconciliation-ийг тусад нь.** `ExpectedQtyAtCount`-ыг Entry No.-ээр тооцох нь BC-д item+location+entry range-аар хөдөлгөөн өгдөг API шаардана (BC `Posting Date` цаггүй). Иймд v10-1_7.
 
@@ -43,16 +45,18 @@ Sync: timer, batch ≤25 → flow → receipt шалгах → colPending-ээс
 
 **CountAssignments**: `CountSessionId`(idx), `CounterEmail`(idx), `LocationCode`, `ZoneCode`, `BinFrom`, `BinTo`, `AssignedQty`, `DeviceSyncDoneAtUtc` (Closing үед "синк дууссан" тэмдэг).
 
-**InventoryCountEvents** (append-only): `ClientRowId`(**unique**, idx), `LogicalCountKey`(idx), `CountAttemptId`, `CountSessionId`(idx), `LocationCode`, `BinCode`, `ItemNo`, `CounterEmail`(idx), `DeviceId`, `PhysicalCountQty`(Number), `CountedAtUtc`, `AttemptType`(Initial/SecondCount/Recount/SupervisorCount/Adjustment), `CanonicalPayload`, `PayloadHash`, `ServerReceivedAtUtc`, `Status`(Received/RejectedSessionClosed/RejectedNoPermission/Conflict), `Created`(idx).
+**InventoryCountEvents** (append-only): `ClientRowId`(**unique**, idx), `LogicalCountKey`(idx), `CountAttemptId`, `CountSessionId`(idx), `LocationCode`, `BinCode`, `ItemNo`, `CounterEmail`(idx), `DeviceId`, `PhysicalCountQty`(Number), `BookQtyAtCount`, `BookAsOfUtc`, `CountedAtUtc`(Text ISO), `AttemptType`(Initial/Legacy; 6b: Recount/SupervisorCount), `CanonicalPayload`, `ServerReceivedAtUtc`, `Status`(Received/RejectedSessionClosed/RejectedNoPermission/RejectedBadQty/RejectedAttemptType), `BatchId`. Conflict мөр хадгалагдахгүй (unique).
 
-**InventoryCountFinal**: `LogicalCountKey`(**unique**, idx), `CountSessionId`(idx), `LocationCode`(idx), `BinCode`, `ItemNo`, `ExpectedQtyAtCount`, `FinalCountQty`, `VarianceQty`, `Status`(idx: Counted/VarianceDetected/RecountRequired/UnderReview/Approved/Rejected/Posted), `WinningAttemptId`, `ApprovedBy`, `ApprovedAtUtc`.
+**InventoryCountFinal**: `LogicalCountKey`(**unique**, idx), `CountSessionId`(idx), `LocationCode`(idx), `BinCode`, `ItemNo`, `ExpectedQtyAtCount`, `CounterA`(idx)/`AQty`/`AAtUtc`/`AClientRowId`, `CounterB`(idx)/`BQty`/`BAtUtc`/`BClientRowId`, `ThirdCounter`, `FinalCountQty`, `VarianceQty`, `Status`(idx: Counted/VarianceDetected/RecountRequired/UnderReview/Approved/Rejected/Posted), `LastEventAtUtc`, `ApprovedBy`, `ApprovedAtUtc`.
+
+Дэлгэрэнгүй (дотоод нэр, provisioning, эрх): `6a/01_SHAREPOINT_LISTS.md`. Нярав Events/Final-д **шууд хандахгүй** — зөвхөн flow бичнэ.
 
 Тоон баганууд **Number** төрөл (одоогийн text + locale асуудлыг шинэ жагсаалтад давтахгүй). Index-ийг жагсаалт хоосон байхад үүсгэнэ.
 
 ## 4. Flow-ууд
 | Flow | Оролт | Үүрэг | Буцаах |
 |---|---|---|---|
-| `SubmitCountEvents` | ≤25 canonical event | Хэрэглэгч = trigger header и-мэйл; эрх + assignment шалгах; сесс `Open` (эсвэл recount нээлттэй мөр) шалгах; `ClientRowId` байвал агуулга тулгах; шинэ бол Events-д нэмэх; Final upsert (дүрэм §0). **Concurrency = 1** | мөр бүрт `{clientRowId, status, payloadMatch, serverId}` |
+| `SubmitCountEvents` | ≤25 event (нэг түлхүүрт нэг) | Хэрэглэгч = trigger header и-мэйл; ACL + сессийн scope + assignment; сесс `Open`; `ClientRowId` байвал canonical тулгах; Events + Final нэг `$batch`-аар; etag/unique-аар race хамгаалалт | мөр бүрт `{clientRowId, result: accepted/rejected/conflict/retry, reason, firstTime, finalStatus}` — `6a/02` |
 | `GetSessionProgress` | sessionId | Сервер талд нэгтгэл: assigned, counted, remaining, recount, variance (хэрэглэгчээр + нийт) | жижиг JSON |
 | `GetMyAssignment` | sessionId | Тухайн хэрэглэгчийн бүс/тавиур | жагсаалт |
 | `SessionAdmin` | action | Open, CountingClosed, OpenRecount, Approve, Cancel — зөвхөн supervisor | төлөв |
@@ -63,7 +67,7 @@ Sync: timer, batch ≤25 → flow → receipt шалгах → colPending-ээс
 - **Санах ойд**: `colRecent` ≤200 (receipt авсан сүүлийн мөрүүд), серверийн progress.
 - **Хориглох**: бүх түүхийг локалд барих, бичилт бүрт том JSON serialize хийх, `Text`/`Items` property-д түүх scan хийх.
 - **Save замын дараалал**: (1) item local LookUp (`colItems`), (2) bin/assignment шалгалт, (3) event үүсгэх (`ClientRowId=GUID()`, `CountAttemptId=GUID()`, `LogicalCountKey`, canonical payload), (4) `Collect(colPending)`, (5) `SaveData(colPending,"CountPendingV16_"&ObjectId)`, (6) UI дараагийн бараа. SaveData амжилтгүй бол **хадгалсанд тооцохгүй**, мөрийг санах ойд үлдээж улаан анхааруулга.
-- **Sync**: 5 сек timer, `colPending`-ээс ≤25, flow; `status ∈ {Received,RejectedSessionClosed,RejectedNoPermission} && payloadMatch` бол pending-ээс хасна; `Conflict`/алдаа бол хадгалж retry/анхааруулна. Сүлжээ байхгүй бол UI-д нөлөөгүй.
+- **Sync**: 15 сек timer, `colPending`-ээс ≤25 (нэг түлхүүрт нэг), flow; `accepted`/`rejected` бол pending-ээс хасна (rejected → hold, харуулна); `conflict` → hold (улаан); `retry`/алдаа бол pending-д үлдэнэ. Сүлжээ байхгүй бол UI-д нөлөөгүй. → `6a/03_APP_CONTRACT.md`
 
 ## 6. Одоогийн кодоос өөрчлөгдөх газрууд (v10-1_5 эх кодоос тоолсон)
 | Төрөл | Тоо | Газрууд | v10-1_6-д |
@@ -95,11 +99,12 @@ Sync: timer, batch ≤25 → flow → receipt шалгах → colPending-ээс
 Хэмжилт: save бүрт `Now()` тэмдэглэж (start/end) локал жижиг лог; 1, 100, 500, 1,000, 3,000, 5,000, 7,000 дахь мөр дээр P50/P95/P99; SaveData хугацаа; pending хэмжээ; sync throughput.
 
 ## 9. Үе шат
-- **6a**: CountSessions + Assignments (уншихад), Events + Final, `SubmitCountEvents`, pending queue, хурдан save, progress, migration. Supervisor-ийн сесс нээх/хаах (`SessionAdmin`) — энгийн дэлгэц.
+- **6a**: CountSessions + Assignments (уншихад), Events + Final, `SubmitCountEvents`, pending queue, хурдан save, локал progress (`firstTime`), migration. Сесс/assignment-ийг supervisor 6a-д **SharePoint жагсаалтаас шууд** удирдана (`SessionAdmin` flow, серверийн progress → 6b). Дараалал: (1) жагсаалт `6a/01` (2) flow `6a/02` + T1–T14 (3) 5b тест дууссаны дараа аппын PASTE `6a/03`-ын гэрээгээр.
 - **6b**: Recount/review/approve UI, `RecountRequired` урсгал, тайлан (`BuildSessionReport`), "тоологдоогүй".
 - **v10-1_7**: Zone lock (Start/Complete Zone Count), BC Entry No. watermark-аар `ExpectedQtyAtCount`, rolling reconciliation, BC posting.
 
 ## 10. Нээлттэй асуудал
 1. BC-ээс item+location+Entry No. range-аар хөдөлгөөн өгөх API байгаа эсэх (v10-1_7-ийн урьдчилсан нөхцөл).
 2. "High-value/serial" ангиллын эх сурвалж (book variance-ийн эрсдэлийн дүрэмд).
-3. Power Platform API хүсэлтийн лиценз (flow дуудалт: 7,000 мөр / 25 = 280 batch + progress).
+3. Power Platform хүсэлтийн хязгаар: M365 лицензийн бодит тоо (эх сурвалжууд 6,000–40,000/24ц гэж зөрүүтэй) ба instant flow-ийн action хэнд тоологдох — admin center-ээс T13-ын дараа хэмжинэ. Тооцоо: 30,000 event ≈ 1,200 batch × ≈45 action ≈ 54,000.
+4. Серверийн progress (`GetSessionProgress`): 5,000-аас олон Final мөртэй жагсаалтад index-тэй шүүлтийн paging-ийг 20,000 туршилтын мөрөөр шалгасны дараа (6b).
