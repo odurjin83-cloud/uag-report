@@ -1,0 +1,44 @@
+If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|home|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),// V27 durable upload: CountKeyV27 is unique in SharePoint.
+If(Connection.Connected && varCountCacheReady &&
+ !Coalesce(varCountSyncBusy,false) && !Coalesce(varCountSaving,false) &&
+ !Coalesce(varHistoryLoading,false) && varCountOwner=Lower(Trim(User().Email)) &&
+ !IsBlank(varCountOwner) && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) &&
+ (IsBlank(varCountRetryAtV27) || Now()>=varCountRetryAtV27),
+Set(varCountSyncBusy,true);Set(varCountAppendReadyR42,false);
+IfError(
+ClearCollect(colToSync,FirstN(SortByColumns(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced),"SyncError",SortOrder.Ascending),25));
+If(!IsEmpty(colToSync),
+ForAll(colToSync As rec,
+    IfError(
+        With({_existing:With({_rowID:rec.SharePointID,_rowTitle:rec.Title,_archivedTitle:"ARCHIVED:" & rec.Title,_oldCounter:User().FullName},If(_rowID>0,With({_byID:LookUp(InventoryCount,ID=_rowID)},If(_byID.Counter=varCountOwner || (_byID.Counter=_oldCounter && _byID.'Created By'.Email=varCountOwner),_byID,Blank())),Coalesce(LookUp(InventoryCount,CountKeyV27=rec.SyncKey && Counter=varCountOwner),LookUp(InventoryCount,Title=_rowTitle && Counter=varCountOwner),LookUp(InventoryCount,Title=_archivedTitle && Counter=varCountOwner))))},
+            With({_saved:Patch(InventoryCount,If(IsBlank(_existing.ID),Defaults(InventoryCount),_existing),{
+                CountKeyV27:rec.SyncKey,Title:If(Coalesce(rec.Archived,false),"ARCHIVED:" & rec.Title,rec.Title),ItemNo:rec.ItemNo,ItemName:rec.ItemName,LocationCode:rec.LocationCode,
+                OpeningBalance:rec.OpeningBalance,CountQty:rec.CountQty,Variance:rec.CountQty-rec.OpeningBalance,
+                CountDate:rec.CountDate,Counter:rec.OwnerEmail,Reason:rec.Reason,Comment:rec.Comment,Resolved:rec.Resolved})},
+                If(IsBlank(_saved.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер мөрийн ID баталгаажуулсангүй."}),
+                    Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+                        {SharePointID:_saved.ID,SyncError:"",Synced:LookUp(colOfflineInventory,SyncKey=rec.SyncKey,Revision)=rec.Revision}));
+                true
+            )
+        ),
+        Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=rec.SyncKey && OwnerEmail=varCountOwner),
+            {Synced:false,SyncError:FirstError.Message});false
+    )
+);
+);
+IfError(
+ If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Эх хадгалалтыг аюулгүй уншаагүй байна."}),
+ ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
+ SaveData(colCountDiskV21,varCountCacheKey)),
+ Set(varCountStorageError,FirstError.Message),Set(varCountStorageError,""));
+Set(varCountRemainingV27,CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+If(!IsEmpty(Filter(colToSync As q,!IsBlank(LookUp(colOfflineInventory,SyncKey=q.SyncKey,SyncError)))),
+ Set(varCountRetryCountV27,Min(5,Coalesce(varCountRetryCountV27,0)+1));
+ Set(varCountRetryAtV27,DateAdd(Now(),Min(300,15*Power(2,varCountRetryCountV27-1)),TimeUnit.Seconds)),
+ Set(varCountRetryCountV27,0);Set(varCountRetryAtV27,Now()));
+Set(varCountUploadQueue,varCountRemainingV27>0),
+ Set(varCountStorageError,FirstError.Message);
+ Set(varCountRetryAtV27,DateAdd(Now(),60,TimeUnit.Seconds)));
+Set(varCountSyncBusy,false))
+
+);If((IsBlank(varCountHistDiskAtV22) || varCountHistDiskAtV22<DateAdd(Now(),-10,TimeUnit.Minutes)) && varCountDiskSafeV21 && varCountCacheReady && IsEmpty(Filter(colOfflineInventory,!Synced)),IfError(ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,Synced),JSONFormat.Compact)});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()),Set(varCountHistDiskErrorV22,FirstError.Message)))

@@ -1,0 +1,32 @@
+If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)) || varHistoryArchive || varHistoryTrash || ThisItem.OwnerEmail<>varCountOwner,
+ Notify("Энэ бүртгэлийг одоо өөрчлөх боломжгүй.",NotificationType.Warning),
+ Set(varCountSaving,true);Set(varCountAppendReadyR42,false);Set(varHistorySavedV22,false);Set(varHistoryCloudOnlyV22,false);Set(varHistoryActionErrorV22,"");
+ ClearCollect(colHistoryNoteBeforeV22,Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),SyncKey=ThisItem.SyncKey && OwnerEmail=varCountOwner));
+ With({_before:First(colHistoryNoteBeforeV22)},
+ If(IsBlank(_before.SyncKey),Notify("Бүртгэл олдсонгүй.",NotificationType.Error),
+ Patch(colOfflineInventory,_before,{Reason:"",Comment:"",Resolved:false},{Synced:false,Revision:Coalesce(_before.Revision,0)+1});
+ IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
+SaveData(colCountDiskV21,varCountCacheKey)),
+ Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message);false,
+ Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varHistorySavedV22,true);true);
+ If(!varHistorySavedV22 && Connection.Connected,
+ IfError(If(!_before.Synced,Error({Kind:ErrorKind.Validation,Message:"Энэ мөрийн өмнөх өөрчлөлт серверт илгээгдээгүй байна. Оффлайн хадгалалтыг сэргээж дахин оролдоно уу."}),With({_id:_before.SharePointID,_title:_before.Title,_archived:"ARCHIVED:" & _before.Title},
+ With({_server:If(_id>0,LookUp(InventoryCount,ID=_id),Coalesce(LookUp(InventoryCount,Title=_title && Counter=varCountOwner),LookUp(InventoryCount,Title=_archived && Counter=varCountOwner)))},
+ If(IsBlank(_server.ID),Error({Kind:ErrorKind.NotFound,Message:"Серверийн эх мөр олдсонгүй. Төхөөрөмжийн хадгалалтыг сэргээж дахин оролдоно уу."}),
+ !(_server.Counter=varCountOwner || (_server.Counter=User().FullName && _server.'Created By'.Email=varCountOwner)),
+ Error({Kind:ErrorKind.Validation,Message:"Энэ бүртгэлийн эзэмшигч тохирохгүй байна."}),
+ With({_ack:Patch(InventoryCount,_server,{Reason:"",Comment:"",Resolved:false})},
+ If(IsBlank(_ack.ID),Error({Kind:ErrorKind.Validation,Message:"Сервер өөрчлөлтийг баталгаажуулсангүй."}),
+ Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),
+ {SharePointID:_ack.ID,Synced:true,SyncError:""});true)))))),
+ Set(varHistoryActionErrorV22,FirstError.Message);false,
+ Set(varHistorySavedV22,true);Set(varHistoryCloudOnlyV22,true);true));
+ If(varHistorySavedV22,
+ Set(varExpandedID,Blank());Set(varReason,Blank());Reset(TextInput1);
+ Notify(If(varHistoryCloudOnlyV22,"Тайлбарыг SharePoint-д хадгаллаа. Оффлайн хуулбар шинэчлэгдээгүй.","Тайлбарыг төхөөрөмжид хадгаллаа."),If(varHistoryCloudOnlyV22,NotificationType.Warning,NotificationType.Success)),
+ Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=_before.SyncKey && OwnerEmail=varCountOwner),_before);
+ Notify("Өөрчлөлт хадгалагдсангүй. " & Coalesce(varHistoryActionErrorV22,varCountStorageError),NotificationType.Error))));
+ Clear(colHistoryNoteBeforeV22);
+ Set(varCountUploadQueue,varCountCacheReady && Connection.Connected && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
+ Set(varCountSaving,false))

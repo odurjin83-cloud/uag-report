@@ -1,0 +1,29 @@
+If(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|report|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (Lower(User().Email)="od.u@tme.mn" || Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email))) && (!IsBlank(Lower(Trim(User().Email))) && varCountOwner=Lower(Trim(User().Email)))),
+If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
+Set(varHistoryLoading,true);Set(varCountAppendReadyR42,false);Set(varHistoryCloudError,false);
+IfError(
+    Refresh(InventoryCount);
+    If((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*"),ClearCollect(colRestoreCloudV16,Filter(InventoryCount,(Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)) && Created>=DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days)));true,Clear(colRestoreCloudV16);ForAll(Filter(Split(pgAccess.LocationCode,"|"),!IsBlank(Value)) As w,Collect(colRestoreCloudV16,Filter(InventoryCount,LocationCode=w.Value && (Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner))));true);true);
+    Set(varHistoryCloudLimit,CountRows(colRestoreCloudV16)>=5000);
+    ClearCollect(colRestoreRowsV16,ForAll(colRestoreCloudV16 As r,With({_title:If(StartsWith(r.Title,"ARCHIVED:"),Mid(r.Title,10),r.Title)},{
+        SyncKey:If(StartsWith(_title,"COUNT:"),Mid(_title,7),"SP-" & Text(r.ID)),
+        Title:_title,Archived:StartsWith(r.Title,"ARCHIVED:"),ItemNo:r.ItemNo,ItemName:r.ItemName,LocationCode:Trim(r.LocationCode),
+        OpeningBalance:IfError(Value(r.OpeningBalance),Blank()),CountQty:IfError(Value(r.CountQty),Blank()),
+        Variance:IfError(Value(r.CountQty)-Value(r.OpeningBalance),Blank()),CountDate:IfError(DateTimeValue(r.CountDate),Blank()),
+        Counter:Coalesce(r.Counter,User().FullName),OwnerEmail:varCountOwner,SharePointID:r.ID,Revision:0,SyncError:"",
+        Reason:r.Reason,Comment:r.Comment,Resolved:r.Resolved,Synced:true})));
+    ClearCollect(colHistoryMergeV16,AddColumns(colOfflineInventory,MergePriority,If(Synced,0,2)));
+    Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
+    ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
+        Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
+    ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,Synced),JSONFormat.Compact)});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()),Set(varCountHistDiskErrorV22,FirstError.Message)));
+    Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
+    If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
+SaveData(colCountDiskV21,varCountCacheKey)),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+    true,
+    Set(varHistoryCloudError,true);false);
+Set(varHistoryLoading,false));Select(Button10_2)
+,
+Notify("Тайлангийн эрх эсвэл агуулахын сонголт өөрчлөгдсөн. Тайланг дахин нээнэ үү.",NotificationType.Warning)
+)
