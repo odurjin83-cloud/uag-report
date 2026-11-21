@@ -93,7 +93,13 @@ s=rep(s,'Clear(colPreviousCountV21);\n      Set(varCountLoadDoneV21,true);',
  '      // r5: legacy V19 rows merged above can be old: keep only unsent rows and the window in memory\n'
  '      RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<'+WIN+');\n'
  '      // r5: one-time C21 -> C22 migration. C21 is cleared only after P (above) and H were written.\n'
- '      If(varCountMigrateV22 && varCountDiskSafeV21 && varCountCacheReady,IfError('+HWRITE+';ClearData(varCountLegacyKeyV22);Set(varCountMigrateV22,false),'
+ '      If(varCountMigrateV22 && varCountDiskSafeV21 && varCountCacheReady,IfError('+HWRITE+';'
+ # read P back and compare the unsent row count before C21 is removed
+ 'ClearCollect(colCountVerifyV22,{Schema:22,Owner:"",Payload:"[]"});Clear(colCountVerifyV22);LoadData(colCountVerifyV22,varCountCacheKey,true);'
+ 'If(CountRows(colCountVerifyV22)=1 && First(colCountVerifyV22).Schema=22 && First(colCountVerifyV22).Owner=varCountOwner && '
+ 'CountRows(Table(ParseJSON(First(colCountVerifyV22).Payload)))=CountRows(Filter(colOfflineInventory,!Synced)),'
+ 'ClearData(varCountLegacyKeyV22);Set(varCountMigrateV22,false),'
+ 'Set(varCountHistDiskErrorV22,"C22P буцааж уншихад таарсангүй; C21-ийг устгаагүй."));Clear(colCountVerifyV22),'
  'Set(varCountHistDiskErrorV22,FirstError.Message)));\n'
  '      Set(varCountLoadDoneV21,true);')
 wr('App.pa.yaml',s)
