@@ -1,0 +1,209 @@
+UpdateContext({homeAccuracyOpen:false,homeAccuracyMonth:false});
+With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+ With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+       valid:!IsBlank(prior.ID) && prior.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+       pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+       withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+    If(IsBlank(principal),
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+       !Connection.Connected,
+        Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+        If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+       pending && same && Coalesce(pgAclConnected,false),
+        If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+       !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+        With({rid:GUID()},
+            Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+            If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+            Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+            With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+             If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+               If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                 !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                 IfError(
+                  With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages-TEST-5b" && UserEmail=principal)},
+                    If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                      If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                        Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                        If(IsBlank(candidate.ID) || candidate.CompanyCode<>"TME-Inventory-Pages-TEST-5b" || Lower(Trim(candidate.UserEmail))<>principal,
+                             Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                           !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                           !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                           Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                  If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted"),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+    )
+ ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|home|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),If(IsBlank(varHomeLanguage),Set(varHomeLanguage,"MN"));
+Set(varHomeProfile,false);Set(varHomeSearch,false);
+ClearCollect(colHomeLatest,ForAll(GroupBy(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !IsBlank(ItemNo)),ItemNo,LocationCode,HomeRows) As g,Patch(First(SortByColumns(g.HomeRows,"CountDate",SortOrder.Descending,"SyncKey",SortOrder.Descending)),{ItemNo:g.ItemNo,LocationCode:g.LocationCode})));
+ClearCollect(colHomeMonths,ForAll(Sequence(8) As m,With({d:DateAdd(Date(Year(Today()),Month(Today()),1),m.Value-8,TimeUnit.Months)},{MonthDate:d,Total:CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months))),Pending:CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !Synced && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months)))})));
+Set(varHomeAccuracy,If(IsEmpty(colHomeLatest),Blank(),CountRows(Filter(colHomeLatest,!IsBlank(OpeningBalance) && !IsBlank(CountQty) && CountQty=OpeningBalance))/CountRows(colHomeLatest)*100));
+Set(varHomeEstimate,If(false,0));If(varPRemind && CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),!Coalesce(Archived,false) && OwnerEmail=varCountOwner && !Synced))>0,Notify("Илгээгээгүй тооллого байна. Холболттой үед автоматаар илгээгдэнэ.",NotificationType.Information));If(Connection.Connected && !Coalesce(varStartupSyncRunning,false) &&
+    (IsBlank(varAutoDataChecked) || DateDiff(varAutoDataChecked,Now(),TimeUnit.Minutes)>=15),If(Connection.Connected && !Coalesce(varStartupSyncRunning,false),
+Set(varStartupSyncRunning,true);
+Concurrent(Set(varAutoItemsError,false);
+IfError(
+    With({itemMasterResponse:PA_GetItemsSnapshot.Run()},
+    ClearCollect(colAutoItemsV16,ForAll(Table(ParseJSON(Coalesce(itemMasterResponse.itemsjson,"[]"))) As r,{number:Text(r.Value.number),displayName:Text(r.Value.displayName),unitOfMeasure:Text(r.Value.unitOfMeasure),itemCategory:Text(r.Value.itemCategory),inventory:If(false,0),unitCost:Value(r.Value.unitCost),unitPrice:Value(r.Value.unitPrice)})));
+    If(IsEmpty(colAutoItemsV16),Set(varAutoItemsError,true),
+        IfError(SaveData(colAutoItemsV16,"OfflineItems_TEST5b_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x"))),Set(varAutoItemsCacheError,true),Set(varAutoItemsCacheError,false));
+        ClearCollect(colOfflineItems,colAutoItemsV16);Set(varAutoItemsUpdated,Now()));true,
+    Set(varAutoItemsError,true);false),
+Set(varStockScopeTicket,GUID());
+With({requestOwner:Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")),requestMail:Lower(Trim(User().Email)),ticket:varStockScopeTicket},
+    With({response:IfError(Patch({ok:false,code:"legacy",rowcount:-1,stockjson:""},TMETEST5bStock.Run()),{ok:false,code:"unavailable",rowcount:-1,stockjson:""})},
+        If(requestOwner=Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")) && requestMail=Lower(Trim(User().Email)) && ticket=varStockScopeTicket,
+            Set(varAutoStockCacheError,false);
+            Set(varStockScopeStatus,If(response.ok=true || response.code="ok","invalid_response",Coalesce(response.code,"legacy")));
+            If(!IsBlank(requestOwner) && !IsBlank(requestMail) && response.ok=true && response.code="ok" &&
+                !IsBlank(response.rowcount) && response.rowcount>=0 && response.rowcount=RoundDown(response.rowcount,0) &&
+                StartsWith(Trim(response.stockjson),"[") && EndsWith(Trim(response.stockjson),"]"),
+                IfError(
+                    With({rows:ForAll(Table(ParseJSON(response.stockjson)) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),quantity:Value(r.Value.quantity)})},
+                        If(CountRows(rows)=response.rowcount && CountIf(rows,IsBlank(Trim(itemNo)) || IsBlank(Trim(locationCode)) || IsBlank(quantity))=0,
+                            Clear(colDStockBaseV17);
+Clear(colDDiskV369);
+Clear(colDCandidateV369);
+Clear(colDJoinV17);
+Clear(colDLegacyV369);
+Clear(colPScopedStock);
+Clear(colPhotoLocationsV28);
+Clear(colRStock);
+Clear(colRptWarehouseCodes);
+Clear(colWLocationCodes);
+Clear(colCountLocationsV19);
+Clear(colPLocationCodes);
+Clear(colWStock);
+Clear(colDStock);
+Clear(colDWarehouses);
+RemoveIf(colRItemCandidatesV16,!Coalesce(ReportCounted,false));
+RemoveIf(colRItems,!Coalesce(ReportCounted,false));
+Set(varDStockReadyV17,false);
+Set(varDStockBuiltAtV17,Blank());
+Set(varDStockScopeV369,Blank());
+Set(varDValue,Blank());
+If(!IsBlank(User().EntraObjectId),IfError(ClearData("DTEST5bStockScoped1_" & Substitute(Text(User().EntraObjectId),"-",""));true,Set(varAutoStockCacheError,true);false));ClearCollect(colAutoStockV16,rows);ClearCollect(colOfflineStock,colAutoStockV16);Set(varAutoStockError,false);Set(varAutoStockUpdated,Now());Set(varStockScopeStatus,"ok");IfError(SaveData(colOfflineStock,"OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);IfError(ClearData("OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);false);false);Set(varLoadedStockRows,CountRows(colOfflineStock));true,false)),
+                    Set(varStockScopeStatus,"invalid_response");false));
+            If(varStockScopeStatus="ok" && response.ok=true,true,
+                Set(varAutoStockError,true);
+Set(varAutoStockUpdated,Blank());
+Clear(colAutoStockV16);
+Clear(colOfflineStock);
+Clear(colDStockBaseV17);
+Clear(colDDiskV369);
+Clear(colDCandidateV369);
+Clear(colDJoinV17);
+Clear(colDLegacyV369);
+Clear(colPScopedStock);
+Clear(colPhotoLocationsV28);
+Clear(colRStock);
+Clear(colRptWarehouseCodes);
+Clear(colWLocationCodes);
+Clear(colCountLocationsV19);
+Clear(colPLocationCodes);
+Clear(colWStock);
+Clear(colDStock);
+Clear(colDWarehouses);
+RemoveIf(colRItemCandidatesV16,!Coalesce(ReportCounted,false));
+RemoveIf(colRItems,!Coalesce(ReportCounted,false));
+Set(varDStockReadyV17,false);
+Set(varDStockBuiltAtV17,Blank());
+Set(varDStockScopeV369,Blank());
+Set(varDValue,Blank());
+If(!IsBlank(User().EntraObjectId),IfError(ClearData("DTEST5bStockScoped1_" & Substitute(Text(User().EntraObjectId),"-",""));true,Set(varAutoStockCacheError,true);false));
+If(!IsBlank(requestOwner),IfError(SaveData(colOfflineStock,"OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);false);IfError(ClearData("OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);false));
+Set(varLoadedStockRows,0);false),
+            false))),
+Set(varBinsScopeTicket,GUID());
+With({requestOwner:Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")),requestMail:Lower(Trim(User().Email)),ticket:varBinsScopeTicket},
+    With({response:IfError(Patch({ok:false,code:"legacy",rowcount:-1,binsjson:""},TMETEST5bBin.Run()),{ok:false,code:"unavailable",rowcount:-1,binsjson:""})},
+        If(requestOwner=Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")) && requestMail=Lower(Trim(User().Email)) && ticket=varBinsScopeTicket,
+            Set(varAutoBinsCacheError,false);
+            Set(varBinsScopeStatus,If(response.ok=true || response.code="ok","invalid_response",Coalesce(response.code,"legacy")));
+            If(!IsBlank(requestOwner) && !IsBlank(requestMail) && response.ok=true && response.code="ok" &&
+                !IsBlank(response.rowcount) && response.rowcount>=0 && response.rowcount=RoundDown(response.rowcount,0) &&
+                StartsWith(Trim(response.binsjson),"[") && EndsWith(Trim(response.binsjson),"]"),
+                IfError(
+                    With({rows:ForAll(Table(ParseJSON(response.binsjson)) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),binCode:Text(r.Value.binCode)})},
+                        If(CountRows(rows)=response.rowcount && CountIf(rows,IsBlank(Trim(itemNo)) || IsBlank(Trim(locationCode)))=0,
+                            Clear(colPScopedBins);ClearCollect(colAutoBinsV16,rows);ClearCollect(colOfflineBins,colAutoBinsV16);Set(varAutoBinsError,false);Set(varAutoBinsUpdated,Now());Set(varBinsScopeStatus,"ok");IfError(SaveData(colOfflineBins,"OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);IfError(ClearData("OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false);false);Clear(colAutoBinsV16);true,false)),
+                    Set(varBinsScopeStatus,"invalid_response");false));
+            If(varBinsScopeStatus="ok" && response.ok=true,true,
+                Set(varAutoBinsError,true);
+Set(varAutoBinsUpdated,Blank());
+Clear(colAutoBinsV16);
+Clear(colOfflineBins);
+Clear(colPScopedBins);
+If(!IsBlank(requestOwner),IfError(SaveData(colOfflineBins,"OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false);IfError(ClearData("OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false));false),
+            false))),
+If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
+Set(varHistoryLoading,true);Set(varHistoryCloudError,false);
+IfError(
+    Refresh(InventoryCount);
+    ClearCollect(colRestoreCloudV16,Filter(InventoryCount,(Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)) && Created>=DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days)));
+    Set(varHistoryCloudLimit,CountRows(colRestoreCloudV16)>=5000);
+    ClearCollect(colRestoreRowsV16,ForAll(colRestoreCloudV16 As r,With({_title:If(StartsWith(r.Title,"ARCHIVED:"),Mid(r.Title,10),r.Title)},{
+        SyncKey:If(StartsWith(_title,"COUNT:"),Mid(_title,7),"SP-" & Text(r.ID)),
+        Title:_title,Archived:StartsWith(r.Title,"ARCHIVED:"),ItemNo:r.ItemNo,ItemName:r.ItemName,LocationCode:Trim(r.LocationCode),
+        OpeningBalance:IfError(Value(r.OpeningBalance),Blank()),CountQty:IfError(Value(r.CountQty),Blank()),
+        Variance:IfError(Value(r.CountQty)-Value(r.OpeningBalance),Blank()),CountDate:IfError(DateTimeValue(r.CountDate),Blank()),
+        Counter:Coalesce(r.Counter,User().FullName),OwnerEmail:varCountOwner,SharePointID:r.ID,Revision:0,SyncError:"",
+        Reason:r.Reason,Comment:r.Comment,Resolved:r.Resolved,Synced:true})));
+    ClearCollect(colHistoryMergeV16,AddColumns(colOfflineInventory,MergePriority,If(Synced,0,2)));
+    Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
+    ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
+        Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
+    ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(With({_h22:IfError(JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),1000),JSONFormat.Compact),IfError(JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),400),JSONFormat.Compact),IfError(JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),100),JSONFormat.Compact),"[]")))},If(IsError(_h22) || Left(_h22,1)<>"[" || Right(_h22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:_h22});If(IsError(SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""))),Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжид бичиж чадсангүй."}),Set(varCountHistDiskAtV22,Now())))),Set(varCountHistDiskErrorV22,FirstError.Message)));
+    Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
+    If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
+With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact),_seq:Coalesce(varCountSeqV22,0)+1},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22,Seq:_seq});If(IsError(SaveData(colCountDiskV21,"C22P" & If(Mod(_seq,2)=0,"A","B") & Substitute(Text(User().EntraObjectId),"-",""))),Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжид бичиж чадсангүй."}),Set(varCountSeqV22,_seq))))),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+    true,
+    Set(varHistoryCloudError,true);false);
+Set(varHistoryLoading,false)));
+Set(varLoadedItemRows,CountRows(colOfflineItems));Set(varLoadedStockRows,CountRows(colOfflineStock));
+If(!Coalesce(varDStockBuildingV17,false),
+Set(varDStockBuildingV17,true);
+With({_scope:If(Lower(User().Email)="od.u@tme.mn","*",If(pgAccess.Active && Lower(pgAccess.UserEmail)=Lower(User().Email) && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()),Upper(Coalesce(pgAccess.LocationCode,"")),"")),_pair:!Coalesce(varAutoStockError,true) && !Coalesce(varAutoItemsError,true)},
+    IfError(
+        If(Coalesce(varDStockScopeV369,"#")<>_scope,Set(varDStockScopeV369,_scope);Set(varDStockReadyV17,false);
+Set(varDStockBuiltAtV17,Blank());Clear(colDStockBaseV17);
+If(!IsBlank(_scope) && !IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:"",FetchedV369:Now()}));Clear(colDDiskV369);
+    IfError(LoadData(colDDiskV369,"DTEST5bStockScoped1_" & Substitute(Text(User().EntraObjectId),"-",""),true),Clear(colDDiskV369));
+    With({_head:LookUp(colDDiskV369,HeaderV369=true)},
+        If(!IsBlank(_head.ScopeV369) && _head.ScopeV369=_scope,
+            ClearCollect(colDStockBaseV17,ForAll(Filter(colDDiskV369,!Coalesce(HeaderV369,false) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,{itemNo:r.itemNo,locationCode:r.locationCode,Qty:r.Qty,Cost:r.Cost,ItemName:r.ItemName,Uom:r.Uom}));
+            Set(varDStockBuiltAtV17,_head.FetchedV369);Set(varDStockReadyV17,true)));
+    Clear(colDDiskV369)));
+        If(!IsBlank(_scope) && (_pair || (true && !Coalesce(varDStockReadyV17,false) &&
+            (IsEmpty(colDStockBaseV17) || !Coalesce(varAutoStockError,true)))),
+            ClearCollect(colDJoinV17,ForAll(If(_pair,colAutoItemsV16,colOfflineItems) As i,{JoinNo:i.number,JoinKind:0,
+                JoinCost:If(_pair,i.unitCost,Blank()),JoinName:i.displayName,JoinUom:i.unitOfMeasure,JoinLocation:"",JoinQty:0}));
+            Collect(colDJoinV17,ForAll(Filter(If(_pair,colAutoStockV16,colOfflineStock),!IsBlank(itemNo) && !IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As s,
+                {JoinNo:s.itemNo,JoinKind:1,JoinCost:Blank(),JoinName:"",JoinUom:"",JoinLocation:s.locationCode,JoinQty:s.quantity}));
+            ClearCollect(colDCandidateV369,Ungroup(ForAll(GroupBy(colDJoinV17,JoinNo,JoinRows) As g,
+                With({_master:LookUp(g.JoinRows,JoinKind=0)},
+                    {StockRows:ForAll(GroupBy(Filter(g.JoinRows,JoinKind=1),JoinLocation,LocationRows) As l,
+                        {itemNo:g.JoinNo,locationCode:l.JoinLocation,Qty:Sum(l.LocationRows,JoinQty),Cost:_master.JoinCost,
+                          ItemName:Coalesce(_master.JoinName,g.JoinNo),Uom:_master.JoinUom})})),StockRows));
+            If(!_pair && IsEmpty(colOfflineStock) && IsEmpty(colDCandidateV369),
+                ClearCollect(colDLegacyV369,{itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""});Clear(colDLegacyV369);
+                Clear(colDLegacyV369);
+                Collect(colDCandidateV369,ForAll(Filter(colDLegacyV369,!IsBlank(locationCode) && (_scope="*" || ("|" & Upper(locationCode) & "|") in _scope)) As r,
+                    Patch(r,{Cost:Blank()})));Clear(colDLegacyV369));
+            ClearCollect(colDStockBaseV17,colDCandidateV369);
+            If(_pair,Set(varDStockBuiltAtV17,Now());Set(varDStockReadyV17,true);
+If(!IsBlank(User().EntraObjectId),
+    ClearCollect(colDDiskV369,Patch({itemNo:"",locationCode:"",Qty:0,Cost:0,ItemName:"",Uom:""},{HeaderV369:true,ScopeV369:_scope,FetchedV369:varDStockBuiltAtV17}));
+    Collect(colDDiskV369,colDStockBaseV17);
+    IfError(SaveData(colDDiskV369,"DTEST5bStockScoped1_" & Substitute(Text(User().EntraObjectId),"-","")),Set(varDStockCacheErrorV17,true),Set(varDStockCacheErrorV17,false));
+    Clear(colDDiskV369))));
+        true,
+        Set(varDStockCacheErrorV17,true);false);
+    Clear(colDCandidateV369);Clear(colDJoinV17);
+    Set(varDValuationMissing,CountIf(colDStockBaseV17,IsBlank(Cost) && Qty<>0));
+    Set(varDValue,If(!Coalesce(varDStockReadyV17,false) || IsEmpty(colDStockBaseV17) || varDValuationMissing>0,
+        Blank(),Sum(colDStockBaseV17,Qty*Cost))));
+Set(varDStockBuildingV17,false));Clear(colAutoItemsV16);Clear(colAutoStockV16);Set(varAutoDataChecked,Now());Set(varStartupSyncRunning,false);
+Set(varCountUploadQueue,!IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)))));If(Connection.Connected,Set(varCountUploadQueue,!IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced))))
+)
