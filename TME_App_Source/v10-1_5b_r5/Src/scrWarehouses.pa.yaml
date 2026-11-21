@@ -1385,7 +1385,7 @@ Screens:
                           Set(varPerfOwnerV1015,owner)
                       )
                   )
-              );If(!IsBlank(varCountReceiptV369.SyncKey),If(!((Lower(User().Email)="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varCountReceiptV369.OwnerEmail=Lower(Trim(User().Email)) && (!IsBlank(varCountReceiptV369.LocationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(varCountReceiptV369.LocationCode) & "|") in pgAccess.LocationCode))),Notify("Өмнөх тооллогын агуулахын эрхийг шалгана уу.",NotificationType.Error),Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || !Coalesce(varCountLoadDoneV21,false),Notify("Тооллогын өгөгдөл боловсруулж байна.",NotificationType.Information),!Connection.Connected,Notify("Өмнөх тооллогыг шалгахын тулд интернэтэд холбогдоно уу.",NotificationType.Warning),Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);Set(varCountAppendReadyR42,false);With({p:varCountReceiptV369},Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
+              );If(!IsBlank(varCountReceiptV369.SyncKey),If(!((Lower(User().Email)="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varCountReceiptV369.OwnerEmail=Lower(Trim(User().Email)) && (!IsBlank(varCountReceiptV369.LocationCode) && (Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*" || ("|" & Upper(varCountReceiptV369.LocationCode) & "|") in pgAccess.LocationCode))),Notify("Өмнөх тооллогын агуулахын эрхийг шалгана уу.",NotificationType.Error),Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || !Coalesce(varCountLoadDoneV21,false),Notify("Тооллогын өгөгдөл боловсруулж байна.",NotificationType.Information),!Connection.Connected,Notify("Өмнөх тооллогыг шалгахын тулд интернэтэд холбогдоно уу.",NotificationType.Warning),Set(varCountSaving,true);Set(varCountSavedV21,false);Set(varCountCloudOnlyV21,false);With({p:varCountReceiptV369},Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
               Set(varCountCloudTitleV369,varCountReceiptV369.Title);
               With({p:varCountReceiptV369},
                IfError(
@@ -1446,11 +1446,10 @@ Screens:
                LocationCode:varLocationCode,OpeningBalance:_opening,CountQty:_qty,Variance:_qty-_opening,CountDate:Now(),Counter:User().FullName,
                OwnerEmail:varCountOwner,Revision:1,Archived:false,SharePointID:0,SyncError:"",Reason:If(phoneReasonItem=varItem.number,Coalesce(phoneCountReason,""),""),Comment:phoneCountNote.Text,Resolved:false,Synced:false});
                IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
-              If(IsError(With({cache:First(colCountDiskV21)},
-               With({payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},
-                 ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:payload})))) || CountRows(colCountDiskV21)<>1 || IsError(First(colCountDiskV21).Payload) || IsBlank(First(colCountDiskV21).Payload),Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй."}),SaveData(colCountDiskV21,varCountCacheKey))),
-                Set(varCountAppendReadyR42,false);Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message),
-                Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varCountSavedV21,true);Set(varCountAppendRowsR42,CountRows(colOfflineInventory));Set(varCountAppendReadyR42,true);If(Coalesce(varPerfDiagV1015,false) && !IsBlank(User().EntraObjectId),Set(varPerfT1V1015,Now())));
+              With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+              SaveData(colCountDiskV21,varCountCacheKey)))),
+                Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message),
+                Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varCountSavedV21,true);If(Coalesce(varPerfDiagV1015,false) && !IsBlank(User().EntraObjectId),Set(varPerfT1V1015,Now())));
                If(!varCountSavedV21 && Connection.Connected,Set(varCountReceiptV369,LookUp(colOfflineInventory,SyncKey=_key && OwnerEmail=varCountOwner));ClearCollect(colCountReceiptDiskV1015,varCountReceiptV369);If(!IsBlank(varCountReceiptV369.SyncKey) && !IsBlank(User().EntraObjectId) && !IsError(SaveData(colCountReceiptDiskV1015,"CountReceiptV1015_" & Substitute(Text(User().EntraObjectId),"-",""))),Set(varCountCloudKeyV369,varCountReceiptV369.SyncKey);
               Set(varCountCloudTitleV369,varCountReceiptV369.Title);
               With({p:varCountReceiptV369},
@@ -1543,7 +1542,8 @@ Screens:
             RadiusTopLeft: =(14)*Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360
             RadiusTopRight: =(14)*Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360
             Size: =15*Min(Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360,Min(App.Height,900*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/720)
-            Text: =If(!IsBlank(varCountReceiptV369.SyncKey),If(varCountSaving,"Шалгаж байна…","Өмнөх тооллогыг дахин хадгалах · " & varCountReceiptV369.ItemNo),If(varCountSaving,"Хадгалж байна…",If(IsBlank(varItem.number) && !IsBlank(varCountLastSavedAtV21) && varCountSavedV21 && !varCountSaving && IsBlank(varCountReceiptV369.SyncKey),If(varCountCloudOnlyV21,"✓ SharePoint-д хадгаллаа · локал хуулбаргүй","✓ Төхөөрөмжид хадгаллаа"),"Хадгалаад дараагийнх →")))
+            Text: |-
+              =If(!IsBlank(varCountReceiptV369.SyncKey),If(varCountSaving,"Шалгаж байна…","Өмнөх тооллогыг дахин хадгалах · " & varCountReceiptV369.ItemNo),If(varCountSaving,"Хадгалж байна…",If(IsBlank(varItem.number) && !IsBlank(varCountLastSavedAtV21) && varCountSavedV21 && !varCountSaving && IsBlank(varCountReceiptV369.SyncKey),If(varCountCloudOnlyV21,"✓ SharePoint-д хадгаллаа · локал хуулбаргүй","✓ Төхөөрөмжид хадгаллаа"),"Хадгалаад дараагийнх →")))
             Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (!varShowWarehouseList && !varCountMenuV21)
             Width: =(263)*Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360
             X: =(App.Width-Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780)))))/2+(81)*Min(App.Width,520*If(App.Height>=1.8*App.Width,Max(1,Min(4,App.Width/390)),Max(1,Min(2.5,Min(App.Width,App.Height)/780))))/360
@@ -2074,12 +2074,12 @@ Screens:
                           ""
                       )
                   },
-
+              
                   If(
                       IsBlank(_searchText),FirstN(colOfflineItems,0),
                       varJustSelected &&
                       _searchText = _barcodeText,
-
+              
                       FirstN(
                           Filter(
                               colOfflineItems,
@@ -2087,7 +2087,7 @@ Screens:
                           ),
                           1
                       ),
-
+              
                       FirstN(
                           Filter(
                               colOfflineItems,

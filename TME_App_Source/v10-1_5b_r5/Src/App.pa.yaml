@@ -11,8 +11,7 @@ App:
     MinScreenHeight: =320
     MinScreenWidth: =320
     OnStart: |-
-      =Set(varCountAppendReadyR42,false);
-      Set(varPerfDiagV1015,true); // TEST: true · PRODUCTION: false (ганц унтраалга)
+      =Set(varPerfDiagV1015,true); // TEST: true · PRODUCTION: false (ганц унтраалга)
       // Declare the SharePoint record type for all screens during Studio binding.
       If(false,Set(pgAccess,Defaults(AssetUserAccess)));
       Set(varPerfStartV368,Now());Set(varPictureResponse,{picture:""});// ==========================================
@@ -188,30 +187,20 @@ App:
       ClearCollect(colPreviousCountV21,colOfflineInventory);
       IfError(LoadData(colPreviousCountV21,"InventoryV19_" & Substitute(EncodeUrl(varCountOwner),".","%2E"),true),Set(varPreviousReadErrorV21,true));
       If(!IsBlank(varCountOwner) && !IsBlank(User().EntraObjectId),
-      Set(varCountLoadFailV22,IsError(LoadData(colCountDiskV21,varCountCacheKey,true)));
-      If(!varCountLoadFailV22 && IsEmpty(colCountDiskV21),Set(varCountLoadFailV22,IsError(LoadData(colCountDiskV21,varCountLegacyKeyV22,true)));Set(varCountMigrateV22,!varCountLoadFailV22 && !IsEmpty(colCountDiskV21)));
-      If(varCountLoadFailV22,
-       Set(varCountLoadErrorV21,true);Set(varCountStorageError,"Төхөөрөмж дэх тооллогын кэшийг уншиж чадсангүй.");false,
-       If(IsEmpty(colCountDiskV21), Set(varCountDiskSafeV21,true);true,
-          CountRows(colCountDiskV21)<>1 || First(colCountDiskV21).Schema<>If(varCountMigrateV22,21,22) ||
-          First(colCountDiskV21).Owner<>varCountOwner || Left(First(colCountDiskV21).Payload,1)<>"[" ||
-          Right(First(colCountDiskV21).Payload,1)<>"]",
-          Set(varCountLoadErrorV21,true);Set(varCountStorageError,"Тооллогын кэшийн бүтэц эсвэл эзэмшигч тохирохгүй байна.");false,
-          If(IsError(ClearCollect(colOfflineInventory,ForAll(Table(ParseJSON(First(colCountDiskV21).Payload)) As r,{
+      IfError(
+       LoadData(colCountDiskV21,varCountCacheKey,true);
+       If(IsEmpty(colCountDiskV21),LoadData(colCountDiskV21,varCountLegacyKeyV22,true);Set(varCountMigrateV22,!IsEmpty(colCountDiskV21)));
+       If(!IsEmpty(colCountDiskV21),
+        If(First(colCountDiskV21).Schema<>If(varCountMigrateV22,21,22) || First(colCountDiskV21).Owner<>varCountOwner,
+         Error({Kind:ErrorKind.Validation,Message:"Хадгалалтын эзэмшигч эсвэл хувилбар тохирохгүй байна."}),
+         ClearCollect(colOfflineInventory,ForAll(Table(ParseJSON(First(colCountDiskV21).Payload)) As r,{
           SyncKey:Text(r.Value.SyncKey),Title:Text(r.Value.Title),ItemNo:Text(r.Value.ItemNo),ItemName:Text(r.Value.ItemName),
           LocationCode:Text(r.Value.LocationCode),OpeningBalance:Value(r.Value.OpeningBalance),CountQty:Value(r.Value.CountQty),Variance:Value(r.Value.Variance),
           CountDate:DateTimeValue(Text(r.Value.CountDate)),Counter:Text(r.Value.Counter),OwnerEmail:Text(r.Value.OwnerEmail),
           Revision:Value(r.Value.Revision),Archived:Boolean(r.Value.Archived),SharePointID:Value(r.Value.SharePointID),SyncError:Text(r.Value.SyncError),
-          Reason:Text(r.Value.Reason),Comment:Text(r.Value.Comment),Resolved:Boolean(r.Value.Resolved),Synced:Boolean(r.Value.Synced)}))), Clear(colOfflineInventory);Set(varCountLoadErrorV21,true);
-            Set(varCountStorageError,"Төхөөрөмж дэх тооллогын мөр уншигдсангүй.");false,
-            If(CountIf(colOfflineInventory,Or(
-                IsError(SyncKey),IsError(Title),IsError(ItemNo),IsError(ItemName),
-                IsError(LocationCode),IsError(OpeningBalance),IsError(CountQty),IsError(Variance),
-                IsError(CountDate),IsError(Counter),IsError(OwnerEmail),IsError(Revision),
-                IsError(Archived),IsError(SharePointID),IsError(SyncError),IsError(Reason),
-                IsError(Comment),IsError(Resolved),IsError(Synced)))>0,
-               Clear(colOfflineInventory);Set(varCountLoadErrorV21,true);
-               Set(varCountStorageError,"Төхөөрөмж дэх тооллогын мөр уншигдсангүй.");false, Set(varCountDiskSafeV21,true);true))));
+          Reason:Text(r.Value.Reason),Comment:Text(r.Value.Comment),Resolved:Boolean(r.Value.Resolved),Synced:Boolean(r.Value.Synced)}))));
+       Set(varCountDiskSafeV21,true);true,
+       Set(varCountLoadErrorV21,true);Set(varCountStorageError,FirstError.Message);false);
       If(varCountDiskSafeV21,
        If(!varCountMigrateV22,IfError(LoadData(colCountHistDiskV22,varCountHistKeyV22,true);If(!IsEmpty(colCountHistDiskV22) && First(colCountHistDiskV22).Schema=22 && First(colCountHistDiskV22).Owner=varCountOwner,ClearCollect(colCountHistRowsV22,ForAll(Table(ParseJSON(First(colCountHistDiskV22).Payload)) As r,{
           SyncKey:Text(r.Value.SyncKey),Title:Text(r.Value.Title),ItemNo:Text(r.Value.ItemNo),ItemName:Text(r.Value.ItemName),
@@ -230,14 +219,14 @@ App:
        // v3.6.8: disk already holds exactly what was loaded, so rewrite it only when V19 rows were merged in.
        If(varPerfPrevCandidatesV368=0 && !IsEmpty(colCountDiskV21) && !varCountMigrateV22,Set(varCountCacheReady,true);Set(varCountStorageError,""),
        IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
-      ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-      SaveData(colCountDiskV21,varCountCacheKey)),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,"")))));
+      With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+      SaveData(colCountDiskV21,varCountCacheKey)))),Set(varCountStorageError,FirstError.Message),Set(varCountCacheReady,true);Set(varCountStorageError,"")))));
       Set(varPerfPrevRowsV368,CountRows(colPreviousCountV21));
       Clear(colPreviousCountV21);
       // r5: legacy V19 rows merged above can be old: keep only unsent rows and the window in memory
       RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));
       // r5: one-time C21 -> C22 migration. C21 is cleared only after P (above) and H were written.
-      If(varCountMigrateV22 && varCountDiskSafeV21 && varCountCacheReady,IfError(ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,Synced),JSONFormat.Compact)});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now());ClearData(varCountLegacyKeyV22);Set(varCountMigrateV22,false),Set(varCountHistDiskErrorV22,FirstError.Message)));
+      If(varCountMigrateV22 && varCountDiskSafeV21 && varCountCacheReady,IfError(With({_h22:JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),1000),JSONFormat.Compact)},If(IsError(_h22) || Left(_h22,1)<>"[" || Right(_h22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:_h22});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now())));ClearData(varCountLegacyKeyV22);Set(varCountMigrateV22,false),Set(varCountHistDiskErrorV22,FirstError.Message)));
       Set(varCountLoadDoneV21,true);Set(varPerfCountLoadedV368,Now());Set(varPerfCountRowsV368,CountRows(colOfflineInventory));
 
       // ==========================================
@@ -550,7 +539,7 @@ App:
       If(!IsBlank(requestOwner),IfError(SaveData(colOfflineBins,"OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false);IfError(ClearData("OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false));false),
                   false))),
       If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
-      Set(varHistoryLoading,true);Set(varCountAppendReadyR42,false);Set(varHistoryCloudError,false);
+      Set(varHistoryLoading,true);Set(varHistoryCloudError,false);
       IfError(
           Refresh(InventoryCount);
           ClearCollect(colRestoreCloudV16,Filter(InventoryCount,(Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)) && Created>=DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days)));
@@ -566,11 +555,11 @@ App:
           Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
           ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
               Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
-          ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,Synced),JSONFormat.Compact)});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()),Set(varCountHistDiskErrorV22,FirstError.Message)));
+          ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(With({_h22:JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),1000),JSONFormat.Compact)},If(IsError(_h22) || Left(_h22,1)<>"[" || Right(_h22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:_h22});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()))),Set(varCountHistDiskErrorV22,FirstError.Message)));
           Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
           If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
-      ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-      SaveData(colCountDiskV21,varCountCacheKey)),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+      With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+      SaveData(colCountDiskV21,varCountCacheKey)))),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
           true,
           Set(varHistoryCloudError,true);false);
       Set(varHistoryLoading,false)));

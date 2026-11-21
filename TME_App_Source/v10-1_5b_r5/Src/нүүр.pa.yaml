@@ -152,7 +152,7 @@ Screens:
         If(!IsBlank(requestOwner),IfError(SaveData(colOfflineBins,"OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false);IfError(ClearData("OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false));false),
                     false))),
         If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
-        Set(varHistoryLoading,true);Set(varCountAppendReadyR42,false);Set(varHistoryCloudError,false);
+        Set(varHistoryLoading,true);Set(varHistoryCloudError,false);
         IfError(
             Refresh(InventoryCount);
             ClearCollect(colRestoreCloudV16,Filter(InventoryCount,(Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)) && Created>=DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days)));
@@ -168,11 +168,11 @@ Screens:
             Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
             ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
                 Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
-            ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,Synced),JSONFormat.Compact)});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()),Set(varCountHistDiskErrorV22,FirstError.Message)));
+            ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(With({_h22:JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),1000),JSONFormat.Compact)},If(IsError(_h22) || Left(_h22,1)<>"[" || Right(_h22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:_h22});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()))),Set(varCountHistDiskErrorV22,FirstError.Message)));
             Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
             If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
-        ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-        SaveData(colCountDiskV21,varCountCacheKey)),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+        With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+        SaveData(colCountDiskV21,varCountCacheKey)))),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
             true,
             Set(varHistoryCloudError,true);false);
         Set(varHistoryLoading,false)));
@@ -521,14 +521,14 @@ Screens:
             HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
             HoverColor: =RGBA(255, 255, 255, 1)
             HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
-            OnSelect: |-
+            OnSelect: |
               =// V27 durable upload: CountKeyV27 is unique in SharePoint.
               If(Connection.Connected && varCountCacheReady &&
                !Coalesce(varCountSyncBusy,false) && !Coalesce(varCountSaving,false) &&
                !Coalesce(varHistoryLoading,false) && varCountOwner=Lower(Trim(User().Email)) &&
                !IsBlank(varCountOwner) && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) &&
                (IsBlank(varCountRetryAtV27) || Now()>=varCountRetryAtV27),
-              Set(varCountSyncBusy,true);Set(varCountAppendReadyR42,false);
+              Set(varCountSyncBusy,true);
               IfError(
               ClearCollect(colToSync,FirstN(SortByColumns(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced),"SyncError",SortOrder.Ascending),25));
               If(!IsEmpty(colToSync),
@@ -552,8 +552,8 @@ Screens:
               );
               IfError(
                If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Эх хадгалалтыг аюулгүй уншаагүй байна."}),
-               ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-               SaveData(colCountDiskV21,varCountCacheKey)),
+               With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+               SaveData(colCountDiskV21,varCountCacheKey)))),
                Set(varCountStorageError,FirstError.Message),Set(varCountStorageError,""));
               Set(varCountRemainingV27,CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
               If(!IsEmpty(Filter(colToSync As q,!IsBlank(LookUp(colOfflineInventory,SyncKey=q.SyncKey,SyncError)))),
@@ -5502,7 +5502,7 @@ Screens:
                !Coalesce(varHistoryLoading,false) && varCountOwner=Lower(Trim(User().Email)) &&
                !IsBlank(varCountOwner) && !IsEmpty(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)) &&
                (IsBlank(varCountRetryAtV27) || Now()>=varCountRetryAtV27),
-              Set(varCountSyncBusy,true);Set(varCountAppendReadyR42,false);
+              Set(varCountSyncBusy,true);
               IfError(
               ClearCollect(colToSync,FirstN(SortByColumns(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced),"SyncError",SortOrder.Ascending),25));
               If(!IsEmpty(colToSync),
@@ -5526,8 +5526,8 @@ Screens:
               );
               IfError(
                If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Эх хадгалалтыг аюулгүй уншаагүй байна."}),
-               ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-               SaveData(colCountDiskV21,varCountCacheKey)),
+               With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+               SaveData(colCountDiskV21,varCountCacheKey)))),
                Set(varCountStorageError,FirstError.Message),Set(varCountStorageError,""));
               Set(varCountRemainingV27,CountRows(Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),OwnerEmail=varCountOwner && !Synced)));
               If(!IsEmpty(Filter(colToSync As q,!IsBlank(LookUp(colOfflineInventory,SyncKey=q.SyncKey,SyncError)))),
@@ -5539,7 +5539,7 @@ Screens:
                Set(varCountRetryAtV27,DateAdd(Now(),60,TimeUnit.Seconds)));
               Set(varCountSyncBusy,false))
 
-              );If((IsBlank(varCountHistDiskAtV22) || varCountHistDiskAtV22<DateAdd(Now(),-10,TimeUnit.Minutes)) && varCountDiskSafeV21 && varCountCacheReady && IsEmpty(Filter(colOfflineInventory,!Synced)),IfError(ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,Synced),JSONFormat.Compact)});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()),Set(varCountHistDiskErrorV22,FirstError.Message)))
+              );If((IsBlank(varCountHistDiskAtV22) || varCountHistDiskAtV22<DateAdd(Now(),-10,TimeUnit.Minutes)) && varCountDiskSafeV21 && varCountCacheReady && IsEmpty(Filter(colOfflineInventory,!Synced)),IfError(With({_h22:JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),1000),JSONFormat.Compact)},If(IsError(_h22) || Left(_h22,1)<>"[" || Right(_h22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:_h22});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()))),Set(varCountHistDiskErrorV22,FirstError.Message)))
             OnTimerStart: |-
               =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|home|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
               )

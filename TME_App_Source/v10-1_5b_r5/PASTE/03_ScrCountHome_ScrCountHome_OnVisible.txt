@@ -131,7 +131,7 @@ Clear(colPScopedBins);
 If(!IsBlank(requestOwner),IfError(SaveData(colOfflineBins,"OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false);IfError(ClearData("OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false));false),
             false))),
 If(Connection.Connected && !IsBlank(varCountOwner) && !Coalesce(varCountSaving,false) && !Coalesce(varCountSyncBusy,false) && !Coalesce(varHistoryLoading,false),
-Set(varHistoryLoading,true);Set(varCountAppendReadyR42,false);Set(varHistoryCloudError,false);
+Set(varHistoryLoading,true);Set(varHistoryCloudError,false);
 IfError(
     Refresh(InventoryCount);
     ClearCollect(colRestoreCloudV16,Filter(InventoryCount,(Counter=varCountOwner || (Counter=User().FullName && 'Created By'.Email=varCountOwner)) && Created>=DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days)));
@@ -147,11 +147,11 @@ IfError(
     Collect(colHistoryMergeV16,AddColumns(colRestoreRowsV16,MergePriority,1));
     ClearCollect(colHistoryMergedV16,ForAll(GroupBy(colHistoryMergeV16,SyncKey,MergeRows) As g,
         Patch(First(SortByColumns(g.MergeRows,"MergePriority",SortOrder.Descending)),{SyncKey:g.SyncKey})));
-    ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,Synced),JSONFormat.Compact)});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()),Set(varCountHistDiskErrorV22,FirstError.Message)));
+    ClearCollect(colOfflineInventory,DropColumns(colHistoryMergedV16,MergePriority));RemoveIf(colOfflineInventory,Synced && !IsBlank(CountDate) && CountDate<DateAdd(Today(),-Coalesce(varCountWindowDaysV22,2),TimeUnit.Days));If(varCountDiskSafeV21,IfError(With({_h22:JSON(FirstN(SortByColumns(Filter(colOfflineInventory,Synced),"CountDate",SortOrder.Descending),1000),JSONFormat.Compact)},If(IsError(_h22) || Left(_h22,1)<>"[" || Right(_h22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountHistDiskV22,{Schema:22,Owner:varCountOwner,Payload:_h22});SaveData(colCountHistDiskV22,"C22H" & Substitute(Text(User().EntraObjectId),"-",""));Set(varCountHistDiskAtV22,Now()))),Set(varCountHistDiskErrorV22,FirstError.Message)));
     Set(varHistoryRefreshed,Now());Clear(colRestoreCloudV16);Clear(colRestoreRowsV16);Clear(colHistoryMergeV16);Clear(colHistoryMergedV16);
     If(varCountCacheReady,IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
-ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-SaveData(colCountDiskV21,varCountCacheKey)),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
+With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+SaveData(colCountDiskV21,varCountCacheKey)))),Set(varHistoryCacheError,true),Set(varHistoryCacheError,false)));
     true,
     Set(varHistoryCloudError,true);false);
 Set(varHistoryLoading,false)));

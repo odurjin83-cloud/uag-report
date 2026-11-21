@@ -1,5 +1,5 @@
 If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)),Notify("Хадгалалт дуусахыг хүлээнэ үү.",NotificationType.Information),
- Set(varCountSaving,true);Set(varCountAppendReadyR42,false);Set(varHistoryDiskSavedV22,false);Set(varHistoryActionErrorV22,"");
+ Set(varCountSaving,true);Set(varHistoryDiskSavedV22,false);Set(varHistoryActionErrorV22,"");
  ClearCollect(colHistoryActionV22,ForAll(FirstN(Filter(colHistoryDeleteV16,OwnerEmail=varCountOwner),25) As selected,
  LookUp(colOfflineInventory,SyncKey=selected.SyncKey && OwnerEmail=varCountOwner)));
  Clear(colHistoryActionResultV22);
@@ -7,8 +7,8 @@ If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesc
  Patch(colOfflineInventory,LookUp(colOfflineInventory,SyncKey=old.SyncKey && OwnerEmail=varCountOwner),
  {Archived:varHistoryDeleteMode="delete",Revision:Coalesce(old.Revision,0)+1,Synced:false,SyncError:""}));
  IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
-ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-SaveData(colCountDiskV21,varCountCacheKey)),
+With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+SaveData(colCountDiskV21,varCountCacheKey)))),
  Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message);false,
  Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varHistoryDiskSavedV22,true);true);
  If(varHistoryDiskSavedV22,

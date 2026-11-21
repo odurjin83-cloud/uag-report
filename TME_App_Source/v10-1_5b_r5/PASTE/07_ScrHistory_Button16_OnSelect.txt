@@ -1,13 +1,13 @@
 If(Coalesce(varCountSaving,false) || Coalesce(varCountSyncBusy,false) || Coalesce(varHistoryLoading,false) || IsBlank(varCountOwner) || varCountOwner<>Lower(Trim(User().Email)) || varHistoryArchive || varHistoryTrash || ThisItem.OwnerEmail<>varCountOwner,
  Notify("Энэ бүртгэлийг одоо өөрчлөх боломжгүй.",NotificationType.Warning),
- Set(varCountSaving,true);Set(varCountAppendReadyR42,false);Set(varHistorySavedV22,false);Set(varHistoryCloudOnlyV22,false);Set(varHistoryActionErrorV22,"");
+ Set(varCountSaving,true);Set(varHistorySavedV22,false);Set(varHistoryCloudOnlyV22,false);Set(varHistoryActionErrorV22,"");
  ClearCollect(colHistoryNoteBeforeV22,Filter(colOfflineInventory,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode),SyncKey=ThisItem.SyncKey && OwnerEmail=varCountOwner));
  With({_before:First(colHistoryNoteBeforeV22)},
  If(IsBlank(_before.SyncKey),Notify("Бүртгэл олдсонгүй.",NotificationType.Error),
  Patch(colOfflineInventory,_before,{Reason:"",Comment:"",Resolved:false},{Synced:false,Revision:Coalesce(_before.Revision,0)+1});
  IfError(If(!varCountDiskSafeV21,Error({Kind:ErrorKind.Validation,Message:"Төхөөрөмжийн эх санг аюулгүй уншаагүй тул дарж бичихгүй."}),
-ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)});
-SaveData(colCountDiskV21,varCountCacheKey)),
+With({_p22:JSON(Filter(colOfflineInventory,!Synced),JSONFormat.Compact)},If(IsError(_p22) || Left(_p22,1)<>"[" || Right(_p22,1)<>"]",Error({Kind:ErrorKind.Validation,Message:"Тооллогын кэшийг бэлдэж чадсангүй. Хуучин файлыг дарж бичсэнгүй."}),ClearCollect(colCountDiskV21,{Schema:22,Owner:varCountOwner,Payload:_p22});
+SaveData(colCountDiskV21,varCountCacheKey)))),
  Set(varCountCacheReady,false);Set(varCountStorageError,FirstError.Message);false,
  Set(varCountCacheReady,true);Set(varCountStorageError,"");Set(varHistorySavedV22,true);true);
  If(!varHistorySavedV22 && Connection.Connected,
