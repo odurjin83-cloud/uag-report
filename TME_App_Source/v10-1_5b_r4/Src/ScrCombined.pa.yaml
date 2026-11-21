@@ -1,0 +1,1080 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ScrCombined:
+    Properties:
+      Fill: =ColorValue("#F5F4F1")
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(0, 51, 102, 1)
+      OnVisible: |-
+        =Set(pgRun4f,Text(GUID()));Set(pgWorking4f,false);Set(pgWorkerTicket4f,"");Set(pgReportReady,false);Set(pgWorkError4f,"");Clear(pgRaw);Clear(pgRows);Clear(pgFullDays);Clear(colPgSlices4f);
+        With({entryTicket:pgRun4f},With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+         With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+               valid:!IsBlank(prior.ID) && prior.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+               pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+            If(IsBlank(principal),
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+               !Connection.Connected,
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+                If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCombined',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+               pending && same && Coalesce(pgAclConnected,false),
+                If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+               !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+                With({rid:GUID()},
+                    Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+                    If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+                    Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+                    With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+                     If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                       If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCombined',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                         !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                         IfError(
+                          With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages-TEST-5b" && UserEmail=principal)},
+                            If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                              If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCombined',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                                Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                                If(IsBlank(candidate.ID) || candidate.CompanyCode<>"TME-Inventory-Pages-TEST-5b" || Lower(Trim(candidate.UserEmail))<>principal,
+                                     Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                                   !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                                   !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                                   Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                          If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrCombined',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+            )
+         ));If(entryTicket=pgRun4f,If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgGroup,"Агуулах");Set(pgTable,false);Set(pgDiff,false);Set(pgRank,0);Set(pgLocation,"");Set(pgReportReady,false);Reset(pgSearch);Set(pgRefreshOkV1015,false);Set(pgLoadedOkV1015,false);Set(pgReadFailV1015,false);
+        Set(pgWorkPhase4f,"refresh");Set(pgWorkOwner4f,Lower(Trim(User().Email)));
+        Set(pgWorkScope4f,If(Lower(Trim(User().Email))="od.u@tme.mn","*",Upper(Trim(pgAccess.LocationCode))));
+        If(pgWorkScope4f="*",
+            ClearCollect(colPgSlices4f,{startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:""}),
+            ClearCollect(colPgSlices4f,ForAll(Distinct(Filter(Split(pgWorkScope4f,"|"),!IsBlank(Trim(Value))),Upper(Trim(Value))) As loc,
+                {startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:loc.Value}))
+        );
+        If(IsEmpty(colPgSlices4f),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Тайлан харах агуулахын эрх олдсонгүй.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning)),Set(pgWorking4f,true))
+        )))
+      Width: =App.Width
+    Children:
+      - ScrCombinedRail:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =Parent.Height
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14
+            Text: =""
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value)
+            Width: =156
+      - pgKpi0:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =58
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =13
+            Text: ="Тоолсон мөр" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},Text(CountRows(t))),"—")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,0,0)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,148,148)
+      - pgKpi1:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =58
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =13
+            Text: ="Тоо таарсан мөрийн хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(IsEmpty(t),"—",Text(100*(CountIf(t,pgVariance=0)/CountRows(t)),"0.0") & "%")),"—")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,1,1)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,148,148)
+      - pgKpi2:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =58
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =13
+            Text: ="Дутсан барааны дүн" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(CountIf(t,pgVariance<0 && IsBlank(cost))>0,"Өртөг дутуу",Text(-Sum(Filter(t,pgVariance<0),pgVariance*cost),"#,##0") & " ₮")),"—")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,2,0)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,148,210)
+      - pgKpi3:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =58
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =13
+            Text: ="Илүү гарсан барааны дүн" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(CountIf(t,pgVariance>0 && IsBlank(cost))>0,"Өртөг дутуу",Text(Sum(Filter(t,pgVariance>0),pgVariance*cost),"#,##0") & " ₮")),"—")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,0,1)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,210,210)
+      - pgKpi4:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =58
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =13
+            Text: ="Үлдэгдлийн дүнд тоолсон барааны эзлэх хувь" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},With({stock:Filter(colDStockBaseV17,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(locationCode) & "|") in pgAccess.LocationCode) && Qty>0)},If(IsEmpty(stock) || Sum(stock,Qty*Cost)<=0,"—",Text(100*(Sum(Filter(stock As st,!IsBlank(LookUp(t,ItemNo=st.itemNo && LocationCode=st.locationCode,ID))),Qty*Cost)/Sum(stock,Qty*Cost)),"0.0") & "%"))),"—")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,1,0)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,210,272)
+      - pgKpi5:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =58
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =13
+            Text: ="Зөрүүний нийт дүн" & Char(10) & If(pgReportReady,With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))},If(CountIf(t,pgVariance<>0 && IsBlank(cost))>0,"Өртөг дутуу",Text(Sum(t,pgVariance*cost),"#,##0") & " ₮")),"—")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)-5
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*If(App.Width>=First(App.SizeBreakpoints).Value,2,1)/If(App.Width>=First(App.SizeBreakpoints).Value,3,2)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,210,272)
+      - pgGrouping0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =If(pgGroup="Агуулах",ColorValue("#FFE3D2"),Color.White)
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =38
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(pgGroup,"Агуулах");Set(pgRank,0)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Агуулах"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0/4
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+      - pgGrouping1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =If(pgGroup="Ажилтан",ColorValue("#FFE3D2"),Color.White)
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =38
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(pgGroup,"Ажилтан");Set(pgRank,0)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Ажилтан"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*1/4
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+      - pgGrouping2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =If(pgGroup="Бараа",ColorValue("#FFE3D2"),Color.White)
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =38
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(pgGroup,"Бараа");Set(pgRank,0)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Бараа"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*2/4
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+      - pgGrouping3:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =If(pgGroup="Өдөр",ColorValue("#FFE3D2"),Color.White)
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =38
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(pgGroup,"Өдөр");Set(pgRank,0)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Өдөр"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/4-4
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*3/4
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)
+      - pgViewMode:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =36
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(pgTable,!pgTable)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgTable,"Хүснэгт  ·  График харах","График  ·  Хүснэгт харах")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+44
+      - pgChartTitle:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =34
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14
+            Text: ="Өдөр бүр тоолсон мөрийн тоо"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && !pgTable && pgReportReady)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0)
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+85
+      - pgReportRow0:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =42
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14
+            Text: =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+1<1 || pgRank+1>CountRows(t),"",With({r:Index(t,pgRank+1)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+1)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+86
+      - pgEmpty:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =48
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14
+            Text: =If(Coalesce(pgWorking4f,false),"Тайланг уншиж байна…",!IsBlank(pgWorkError4f),pgWorkError4f,If(pgReportReady,"Сонгосон нөхцөлд мөр олдсонгүй.","Тайлан бүрэн ачаалагдаагүй."))
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (!pgReportReady || IsEmpty(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode))))
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+90
+      - pgChart:
+          Control: Image@2.2.3
+          Properties:
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            DisabledBorderColor: =RGBA(56, 56, 56, 1)
+            DisabledFill: =RGBA(119, 119, 119, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Height: =142
+            Image: ="data:image/svg+xml;utf8," & EncodeUrl(With({t:Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),n:DateDiff(pgFrom,Today())+1},With({days:AddColumns(Sequence(n) As d,total,CountIf(t,DateValue(Text(Created))=DateAdd(pgFrom,d.Value-1,TimeUnit.Days)))},"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 520 190'><path d='M12 160H510' stroke='#ddd'/>" & Concat(days As d,"<rect x='" & Text(12+(d.Value-1)*496/n,"0.0","en-US") & "' y='" & Text(160-145*d.total/Max(1,Max(days,total)),"0.0","en-US") & "' width='" & Text(Max(2,470/n),"0.0","en-US") & "' height='" & Text(145*d.total/Max(1,Max(days,total)),"0.0","en-US") & "' fill='#ed601f' rx='2'/>") & "</svg>")))
+            ImagePosition: =%ImagePosition.RESERVED%.Fit
+            ImageRotation: =%ImageRotation.RESERVED%.None
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && !pgTable && pgReportReady)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0)
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+119
+      - pgReportRow1:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =42
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14
+            Text: =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+2<1 || pgRank+2>CountRows(t),"",With({r:Index(t,pgRank+2)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+2)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+131
+      - pgReportRow2:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =42
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14
+            Text: =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+3<1 || pgRank+3>CountRows(t),"",With({r:Index(t,pgRank+3)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+3)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+176
+      - pgDenied1393:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =76
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgAclState="checking","Эрх шалгаж байна…",Switch(pgAclState,"checking","Эрх шалгаж байна…","signIn","Microsoft 365-д нэвтэрнэ үү","readError","SharePoint-оос эрх уншиж чадсангүй","missing","Энэ нэвтрэх нэрээр эрхийн бүртгэл харагдсангүй","inactive","Эрхийн бүртгэл идэвхгүй","expired","Эрхийн хугацаа дууссан","offline","Эрх шалгахын тулд онлайн орно уу","Энэ хуудасны эрх олгогдоогүй") & " · Профайл")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            Width: =Min(320,Parent.Width-24)
+            X: =Max(12,(Parent.Width-320)/2)
+            Y: =Max(12,(Parent.Height-76)/2)
+      - pgReportRow3:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =42
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            PaddingLeft: =10
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14
+            Text: =With({t:SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)},If(!pgReportReady || pgRank+4<1 || pgRank+4>CountRows(t),"",With({r:Index(t,pgRank+4)},r.pgKey & "   ·   " & r.pgTotal & " мөр   " & If(pgTable,"Тоо таарсан " & CountIf(r.pgMembers,pgVariance=0) & "   ·   Зөрүүтэй " & CountIf(r.pgMembers,pgVariance<>0),Concat(Sequence(RoundUp(12*r.pgTotal/First(t).pgTotal,0)),"━")))))
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>=pgRank+4)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))-If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+If(pgTable,0,If(App.Width>=First(App.SizeBreakpoints).Value,(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.52,0))
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+221
+      - pgMoreRows:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =38
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(pgRank,If(pgRank+4>=CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending)),0,pgRank+4))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Дараагийн мөрүүд"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (pgReportReady && CountRows(SortByColumns(AddColumns(GroupBy(AddColumns(Filter(pgRows,((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(Trim(LocationCode)) & "|") in pgAccess.LocationCode),(!pgDiff || pgVariance<>0) && (IsBlank(pgSearch.Text) || pgSearch.Text in ItemName || StartsWith(ItemNo,pgSearch.Text) || pgSearch.Text in Counter || pgSearch.Text in LocationCode)),pgKey,Switch(pgGroup,"Агуулах",LocationCode,"Ажилтан",Counter,"Бараа",ItemNo,Text(Created,"yyyy-mm-dd"))),pgKey,pgMembers),pgTotal,CountRows(pgMembers)),"pgTotal",SortOrder.Descending))>4)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: =If(App.Width>=First(App.SizeBreakpoints).Value,274,336)+270
+      - ScrCombinedHead:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#242528")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.Transparent
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Bold
+            Height: =44
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            Role: =%TextRole.RESERVED%.Default
+            Size: =22
+            Text: ="Нэгдсэн тайлан · бүртгэсэн өдрөөр"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28)
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: =8
+      - ScrCombinedBack:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Back()
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Буцах"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width<First(App.SizeBreakpoints).Value)
+            Width: =64
+            X: =Parent.Width-78
+            Y: =8
+      - pgPeriod0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =If(pgFrom=Today(),ColorValue("#FFE3D2"),Color.White)
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =36
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: |-
+              =Set(pgRun4f,Text(GUID()));Set(pgWorking4f,false);Set(pgWorkerTicket4f,"");Set(pgReportReady,false);Set(pgWorkError4f,"");Clear(pgRaw);Clear(pgRows);Clear(pgFullDays);Clear(colPgSlices4f);
+              With({entryTicket:pgRun4f},If(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (Lower(User().Email)="od.u@tme.mn" || Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)))),
+              Set(pgFrom,Today());Set(pgRank,0);Set(pgRefreshOkV1015,false);Set(pgLoadedOkV1015,false);Set(pgReadFailV1015,false);
+              Set(pgWorkPhase4f,"refresh");Set(pgWorkOwner4f,Lower(Trim(User().Email)));
+              Set(pgWorkScope4f,If(Lower(Trim(User().Email))="od.u@tme.mn","*",Upper(Trim(pgAccess.LocationCode))));
+              If(pgWorkScope4f="*",
+                  ClearCollect(colPgSlices4f,{startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:""}),
+                  ClearCollect(colPgSlices4f,ForAll(Distinct(Filter(Split(pgWorkScope4f,"|"),!IsBlank(Trim(Value))),Upper(Trim(Value))) As loc,
+                      {startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:loc.Value}))
+              );
+              If(IsEmpty(colPgSlices4f),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Тайлан харах агуулахын эрх олдсонгүй.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning)),Set(pgWorking4f,true))
+              ,
+              Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);Notify("Тайлангийн эрх эсвэл агуулахын сонголт өөрчлөгдсөн. Тайланг дахин нээнэ үү.",NotificationType.Warning)
+              ))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Өнөөдөр"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/3-4
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0/3
+            Y: =57
+      - pgPeriod1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =If(pgFrom=DateAdd(Today(),-6,TimeUnit.Days),ColorValue("#FFE3D2"),Color.White)
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =36
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: |-
+              =Set(pgRun4f,Text(GUID()));Set(pgWorking4f,false);Set(pgWorkerTicket4f,"");Set(pgReportReady,false);Set(pgWorkError4f,"");Clear(pgRaw);Clear(pgRows);Clear(pgFullDays);Clear(colPgSlices4f);
+              With({entryTicket:pgRun4f},If(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (Lower(User().Email)="od.u@tme.mn" || Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)))),
+              Set(pgFrom,DateAdd(Today(),-6,TimeUnit.Days));Set(pgRank,0);Set(pgRefreshOkV1015,false);Set(pgLoadedOkV1015,false);Set(pgReadFailV1015,false);
+              Set(pgWorkPhase4f,"refresh");Set(pgWorkOwner4f,Lower(Trim(User().Email)));
+              Set(pgWorkScope4f,If(Lower(Trim(User().Email))="od.u@tme.mn","*",Upper(Trim(pgAccess.LocationCode))));
+              If(pgWorkScope4f="*",
+                  ClearCollect(colPgSlices4f,{startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:""}),
+                  ClearCollect(colPgSlices4f,ForAll(Distinct(Filter(Split(pgWorkScope4f,"|"),!IsBlank(Trim(Value))),Upper(Trim(Value))) As loc,
+                      {startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:loc.Value}))
+              );
+              If(IsEmpty(colPgSlices4f),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Тайлан харах агуулахын эрх олдсонгүй.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning)),Set(pgWorking4f,true))
+              ,
+              Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);Notify("Тайлангийн эрх эсвэл агуулахын сонголт өөрчлөгдсөн. Тайланг дахин нээнэ үү.",NotificationType.Warning)
+              ))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="7 хоног"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/3-4
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*1/3
+            Y: =57
+      - pgPeriod2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =If(pgFrom=Date(Year(Today()),Month(Today()),1),ColorValue("#FFE3D2"),Color.White)
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =36
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: |-
+              =Set(pgRun4f,Text(GUID()));Set(pgWorking4f,false);Set(pgWorkerTicket4f,"");Set(pgReportReady,false);Set(pgWorkError4f,"");Clear(pgRaw);Clear(pgRows);Clear(pgFullDays);Clear(colPgSlices4f);
+              With({entryTicket:pgRun4f},If(((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && (Lower(User().Email)="od.u@tme.mn" || Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)))),
+              Set(pgFrom,Date(Year(Today()),Month(Today()),1));Set(pgRank,0);Set(pgRefreshOkV1015,false);Set(pgLoadedOkV1015,false);Set(pgReadFailV1015,false);
+              Set(pgWorkPhase4f,"refresh");Set(pgWorkOwner4f,Lower(Trim(User().Email)));
+              Set(pgWorkScope4f,If(Lower(Trim(User().Email))="od.u@tme.mn","*",Upper(Trim(pgAccess.LocationCode))));
+              If(pgWorkScope4f="*",
+                  ClearCollect(colPgSlices4f,{startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:""}),
+                  ClearCollect(colPgSlices4f,ForAll(Distinct(Filter(Split(pgWorkScope4f,"|"),!IsBlank(Trim(Value))),Upper(Trim(Value))) As loc,
+                      {startAt:pgFrom,stopAt:DateAdd(Today(),1,TimeUnit.Days),place:loc.Value}))
+              );
+              If(IsEmpty(colPgSlices4f),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Тайлан харах агуулахын эрх олдсонгүй.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning)),Set(pgWorking4f,true))
+              ,
+              Set(pgReportReady,false);Clear(pgRows);Clear(pgRaw);Clear(pgFullDays);Notify("Тайлангийн эрх эсвэл агуулахын сонголт өөрчлөгдсөн. Тайланг дахин нээнэ үү.",NotificationType.Warning)
+              ))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: ="Энэ сар"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))/3-4
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*2/3
+            Y: =57
+      - ScrCombinedNav0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Navigate(нүүр,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =12
+            Text: ="Нүүр"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|home|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+            Width: =140
+            X: =8
+            Y: =64
+      - pgSearch:
+          Control: Classic/TextInput@2.3.2
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            Default: =""
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 40%)
+            DisabledColor: =ColorFade(Self.Color, 40%)
+            DisabledFill: =Self.Fill
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            FocusedBorderThickness: =3
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Format: =%TextFormat.RESERVED%.Text
+            Height: =40
+            HintText: ="Бараа, код, агуулах, ажилтан хайх"
+            HoverBorderColor: =Self.Color
+            HoverColor: =Self.Color
+            HoverFill: =Self.Fill
+            Mode: =%TextMode.RESERVED%.SingleLine
+            OnChange: =Set(pgRank,0)
+            Size: =14
+            VirtualKeyboardMode: =%VirtualKeyboardMode.RESERVED%.Auto
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.62
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)
+            Y: =98
+      - pgDiffOnly:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =ColorValue("#242528")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#FFFFFF")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(pgDiff,!pgDiff);Set(pgRank,0)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgDiff,"✓ Зөрүүтэй","Зөвхөн зөрүүтэй")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.37
+            X: =If(App.Width>=First(App.SizeBreakpoints).Value,176,14)+(If(App.Width>=First(App.SizeBreakpoints).Value,Parent.Width-192,Parent.Width-28))*0.63
+            Y: =98
+      - ScrCombinedNav1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Navigate(ScrCountHome,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =12
+            Text: ="Тооллого"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|count|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+            Width: =140
+            X: =8
+            Y: =112
+      - ScrCombinedNav2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Navigate(Screen1,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =12
+            Text: ="Агуулах"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+            Width: =140
+            X: =8
+            Y: =160
+      - ScrCombinedNav3:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Navigate(ScrIssueA25Test,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =12
+            Text: ="Зарлага"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title)))
+            Width: =140
+            X: =8
+            Y: =208
+      - ScrCombinedNav4:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Navigate(ScrCombined,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =12
+            Text: ="Нэгдсэн тайлан"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))))
+            Width: =140
+            X: =8
+            Y: =256
+      - ScrCombinedNav5:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =40
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Navigate(ScrPageAdmin,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =12
+            Text: ="Хэрэглэгч ба эрх"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (App.Width>=First(App.SizeBreakpoints).Value && (Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|admin|" in pgAccess.Title)))
+            Width: =140
+            X: =8
+            Y: =304
+      - pgReportLoader4f:
+          Control: Timer@2.1.0
+          Properties:
+            AutoPause: =true
+            AutoStart: =false
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            Duration: =120
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(4)*(Min(Min(App.Width,960)/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =1
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnTimerEnd: |-
+              =If(Coalesce(pgWorking4f,false) && App.ActiveScreen=ScrCombined && pgWorkerTicket4f<>pgRun4f,
+               With({ticket:pgRun4f},
+                  Set(pgWorkerTicket4f,ticket);
+                  IfError(
+                    If((App.ActiveScreen=ScrCombined && Connection.Connected && (Lower(Trim(User().Email))="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && Lower(Trim(User().Email))=pgWorkOwner4f && If(Lower(Trim(User().Email))="od.u@tme.mn","*",Upper(Trim(pgAccess.LocationCode)))=pgWorkScope4f),If(pgWorkPhase4f="refresh",With({ok:IfError(Refresh(InventoryCount);true,false)},
+               If(ticket=pgRun4f,If((App.ActiveScreen=ScrCombined && Connection.Connected && (Lower(Trim(User().Email))="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && Lower(Trim(User().Email))=pgWorkOwner4f && If(Lower(Trim(User().Email))="od.u@tme.mn","*",Upper(Trim(pgAccess.LocationCode)))=pgWorkScope4f),Set(pgRefreshOkV1015,ok);If(ok,Set(pgWorkPhase4f,"read"),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"SharePoint-оос тайлангийн өгөгдлийг шинэчилж чадсангүй.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning))),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Тайлангийн эрх эсвэл холболт өөрчлөгдлөө. Тайланг дахин нээнэ үү.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning))));true
+              ),Set(pgReadStart4f,First(colPgSlices4f).startAt);Set(pgReadStop4f,First(colPgSlices4f).stopAt);
+              Set(pgReadPlace4f,First(colPgSlices4f).place);
+              With({batch4f:If(pgWorkScope4f="*",
+                  FirstN(Filter(InventoryCount,Created>=pgReadStart4f && Created<pgReadStop4f),500),
+                  FirstN(Filter(InventoryCount,Created>=pgReadStart4f && Created<pgReadStop4f && LocationCode=pgReadPlace4f),500))},
+                  If(ticket=pgRun4f,If((App.ActiveScreen=ScrCombined && Connection.Connected && (Lower(Trim(User().Email))="od.u@tme.mn" || (Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|combined|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && Lower(Trim(User().Email))=pgWorkOwner4f && If(Lower(Trim(User().Email))="od.u@tme.mn","*",Upper(Trim(pgAccess.LocationCode)))=pgWorkScope4f),If(CountRows(batch4f)>=500,
+                  If(DateDiff(pgReadStart4f,pgReadStop4f,TimeUnit.Days)>1,
+                      Remove(colPgSlices4f,First(colPgSlices4f));
+                      Collect(colPgSlices4f,ForAll(Sequence(DateDiff(pgReadStart4f,pgReadStop4f,TimeUnit.Days)) As dayNo,
+                          {startAt:DateAdd(pgReadStart4f,dayNo.Value-1,TimeUnit.Days),
+                           stopAt:DateAdd(pgReadStart4f,dayNo.Value,TimeUnit.Days),place:pgReadPlace4f}));true,
+                      Collect(pgFullDays,{day:pgReadStart4f});Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Нэг өдрийн 500 мөрийн хязгаарт хүрсэн тул тайланг бүрэн харуулах боломжгүй.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning));false
+                  ),
+                  Collect(pgRaw,batch4f);Remove(colPgSlices4f,First(colPgSlices4f));
+                  If(IsEmpty(colPgSlices4f),ClearCollect(pgRows,AddColumns(Filter(pgRaw,!StartsWith(Title,"ARCHIVED:") && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode)) As a,pgVariance,IfError(Value(a.Variance),Blank()),cost,LookUp(colOfflineItems,number=a.ItemNo,unitCost)));If(Coalesce(varPerfDiagV1015,false),With({ctl:ForAll(Split("5031,5033,5035,5036,5037,5039,5040,5041,5042,5043,5044,5045,5046,5047,5048,5049,5050,5052,5056,5057,5058,5078,5079,5081,5083,5085,5086,5088,5090,5092,5095,5097,5099,5101,5103,5105,5107,5109,5111,5113",",") As c,{Id:Value(c.Value)})},With({rd:Filter(ctl As c,c.Id in pgRaw.ID),kp:Filter(ctl As c,c.Id in pgRows.ID)},Notify("ДИАГ 2026-11-20 Од CAMP · уншсан " & CountRows(rd) & "/" & CountRows(ctl) & " · тайланд үлдсэн " & CountRows(kp) & "/" & CountRows(ctl) & " · УНШААГҮЙ: " & Coalesce(Concat(Filter(ctl As c,!(c.Id in pgRaw.ID)),Text(Id),","),"-") & " · ШҮҮЛТЭД ХАСАГДСАН: " & Coalesce(Concat(Filter(ctl As c,c.Id in pgRaw.ID && !(c.Id in pgRows.ID)),Text(Id),","),"-") & " · нийт уншсан " & CountRows(pgRaw) & ", тайланд " & CountRows(pgRows),NotificationType.Information))));Clear(pgRaw);Set(pgLoadedOkV1015,true);Set(pgReportReady,pgRefreshOkV1015 && !pgReadFailV1015);
+              Set(pgWorking4f,false);Set(pgWorkError4f,""));true
+              ),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Тайлангийн эрх эсвэл холболт өөрчлөгдлөө. Тайланг дахин нээнэ үү.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning));false));true
+              )),Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,"Тайлангийн эрх эсвэл холболт өөрчлөгдлөө. Тайланг дахин нээнэ үү.");If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning)));true,
+                    If(ticket=pgRun4f,Set(pgWorking4f,false);Set(pgReportReady,false);Set(pgReadFailV1015,true);Set(pgLoadedOkV1015,false);Clear(pgRows);Clear(pgRaw);Clear(colPgSlices4f);Set(pgWorkError4f,Coalesce(FirstError.Message,"Тайланг бүрэн уншиж чадсангүй."));If(App.ActiveScreen=ScrCombined,Notify(pgWorkError4f,NotificationType.Warning)));false
+                  );
+                  If(ticket=pgRun4f,Set(pgWorkerTicket4f,""))
+               )
+              )
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            Repeat: =true
+            Size: =Max(12,(13)*(Min(Min(App.Width,960)/640,App.Height/1136)))
+            Start: =Coalesce(pgWorking4f,false) && App.ActiveScreen=ScrCombined
+            Visible: =false
+            Width: =1

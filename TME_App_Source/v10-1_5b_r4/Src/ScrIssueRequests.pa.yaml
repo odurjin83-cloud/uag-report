@@ -1,0 +1,520 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ScrIssueRequests:
+    Properties:
+      Fill: =ColorValue("#F5F4F1")
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(0, 51, 102, 1)
+      OnVisible: |-
+        =With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+         With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+               valid:!IsBlank(prior.ID) && prior.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+               pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+            If(IsBlank(principal),
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+               !Connection.Connected,
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+                If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrIssueRequests',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+               pending && same && Coalesce(pgAclConnected,false),
+                If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+               !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+                With({rid:GUID()},
+                    Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+                    If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+                    Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+                    With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+                     If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                       If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrIssueRequests',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                         !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                         IfError(
+                          With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages-TEST-5b" && UserEmail=principal)},
+                            If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                              If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrIssueRequests',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                                Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                                If(IsBlank(candidate.ID) || candidate.CompanyCode<>"TME-Inventory-Pages-TEST-5b" || Lower(Trim(candidate.UserEmail))<>principal,
+                                     Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                                   !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                                   !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                                   Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                          If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrIssueRequests',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+            )
+         ));Set(qHistoryFlight,Blank());Set(qHistoryBusy,false);Set(qDetailFlight,Blank());Set(qDetailBusy,false);Set(qDetailId,Blank());Set(qJobsPage,0);Set(qHistoryError,"");Clear(qJobs);Set(qCallerHistoryOwner,Blank());Set(qHistoryOwner,Blank());If((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))),If(IsBlank(qCacheOwner) || qCacheOwner<>Lower(Trim(User().Email)) || IsBlank(qDeviceKey),Set(qCacheOwner,Blank());Set(qAckId,Blank());Set(qRepairPayload,Blank());Set(qJournalFault,Blank());Set(qJournalFaultOwner,Lower(Trim(User().Email)));Set(qDeviceKey,With({email:Lower(Trim(User().Email))},With({escaped:Concat(Split(email,"") As c,Switch(c.Value,"%","%25","*","%2A","""","%22",".","%2E","?","%3F",":","%3A","\","%5C","<","%3C",">","%3E","|","%7C","/","%2F",c.Value))},If(escaped=Substitute(email,"%","%25"),"TMEIssuePendingV1_" & email,"TMEIssuePendingV2_" & escaped))));ClearCollect(qOutbox,{id:"",owner:"",location:"",employee:"",expected:0,payload:""});Clear(qOutbox);ClearCollect(qLegacyOutbox,{id:"",owner:"",location:"",employee:"",expected:0,payload:""});Clear(qLegacyOutbox);If(IfError(LoadData(qOutbox,qDeviceKey,true);true,false),If(qDeviceKey<>("TMEIssuePendingV1_" & Lower(Trim(User().Email))),IfError(LoadData(qLegacyOutbox,"TMEIssuePendingV1_" & Lower(Trim(User().Email)),true);true,Clear(qLegacyOutbox);false));If(!(If(IsEmpty(qOutbox),true,CountRows(qOutbox)<>1,false,With({j:First(qOutbox)},IfError(With({p:ParseJSON(j.payload)},And(j.owner=Lower(Trim(User().Email)),j.location="CAMP",!IsBlank(j.employee),j.expected>0,!IsBlank(j.id),!IsBlank(GUID(j.id)),Lower(Text(p.id))=Lower(j.id),Text(p.mode)="enqueue",Text(p.location)=j.location,Text(p.employeeNo)=j.employee,CountRows(Table(p.lines))=j.expected)),false)))) || !(If(IsEmpty(qLegacyOutbox),true,CountRows(qLegacyOutbox)<>1,false,With({j:First(qLegacyOutbox)},IfError(With({p:ParseJSON(j.payload)},And(j.owner=Lower(Trim(User().Email)),j.location="CAMP",!IsBlank(j.employee),j.expected>0,!IsBlank(j.id),!IsBlank(GUID(j.id)),Lower(Text(p.id))=Lower(j.id),Text(p.mode)="enqueue",Text(p.location)=j.location,Text(p.employeeNo)=j.employee,CountRows(Table(p.lines))=j.expected)),false)))),Set(qJournalFault,"Энэ төхөөрөмжид зөрүүтэй хүсэлт байна. Хүсэлтүүд хэсгээс олголтоо шалгана уу.");Set(qJournalFaultOwner,Lower(Trim(User().Email)));Set(qNotice,qJournalFault);false,If(IsEmpty(qLegacyOutbox),Set(qCacheOwner,Lower(Trim(User().Email)));true,!IsEmpty(qOutbox) && (First(qOutbox).id<>First(qLegacyOutbox).id || First(qOutbox).payload<>First(qLegacyOutbox).payload),Set(qJournalFault,"Энэ төхөөрөмжид зөрүүтэй хүсэлт байна. Хүсэлтүүд хэсгээс олголтоо шалгана уу.");Set(qJournalFaultOwner,Lower(Trim(User().Email)));Set(qNotice,qJournalFault);false,If(IsEmpty(qOutbox),ClearCollect(qOutbox,qLegacyOutbox));If(IfError(SaveData(qOutbox,qDeviceKey);true,false),If(IfError(ClearData("TMEIssuePendingV1_" & Lower(Trim(User().Email)));true,false),Clear(qLegacyOutbox);Set(qCacheOwner,Lower(Trim(User().Email)));true,Set(qJournalFault,"Өмнөх хүсэлтийн дугаарыг сэргээж чадсангүй. Хүсэлтүүд хэсгээс өмнөх олголтоо шалгана уу.");Set(qJournalFaultOwner,Lower(Trim(User().Email)));Set(qNotice,qJournalFault);false),Set(qJournalFault,"Өмнөх хүсэлтийн дугаарыг сэргээж чадсангүй. Хүсэлтүүд хэсгээс өмнөх олголтоо шалгана уу.");Set(qJournalFaultOwner,Lower(Trim(User().Email)));Set(qNotice,qJournalFault);false))),Set(qJournalFault,"Энэ төхөөрөмж дээрх өмнөх хүсэлтийг шалгаж чадсангүй. Сагсаа хаалгүй дахин оролдоно уу.");Set(qJournalFaultOwner,Lower(Trim(User().Email)));Set(qNotice,qJournalFault);false));Select(qHistoryReload))
+      Width: =App.Width
+    Children:
+      - qTitle:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#202225")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.Transparent
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,62*Parent.Height/720,59*Parent.Height/680)
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            Role: =%TextRole.RESERVED%.Default
+            Size: =20*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="Миний олголтын хүсэлтүүд"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title)))
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,236*Parent.Width/360,645*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,14*Parent.Width/360,24*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,12*Parent.Height/720,9*Parent.Height/680)
+      - qGoHome:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,40*Parent.Height/720,43*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =Navigate(ScrPageMenu,ScreenTransition.None)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="Гарах"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,88*Parent.Width/360,162*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,255*Parent.Width/360,911*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,16*Parent.Height/720,12*Parent.Height/680)
+      - qHistoryReload:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =If(qHistoryBusy || qDetailBusy,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,42*Parent.Height/720,46*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =If((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && !Coalesce(qHistoryBusy,false),With({actor:Lower(Trim(User().Email)),flight:Text(GUID())},Set(qCallerHistoryOwner,Blank());Set(qHistoryFlight,flight);Set(qHistoryBusy,true);Set(qHistoryError,"");If(!Connection.Connected,Set(qHistoryError,"Хүсэлтийн явцыг шинэчлэхэд интернэт хэрэгтэй."),IfError(With({reply:ParseJSON(TMEIssueA25Test.Run(JSON({mode:"history",id:flight,location:"CAMP"})).itemsjson)},If(qHistoryFlight=flight && actor=Lower(Trim(User().Email)) && (!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && App.ActiveScreen=ScrIssueRequests,If(Lower(Text(reply.ok))="true" && Text(reply.state)="history" && Lower(Text(reply.requestId))=Lower(flight) && Text(reply.location)="CAMP" && !IsBlank(reply.entries),ClearCollect(qJobs,SortByColumns(Filter(ForAll(Table(reply.entries) As e,{id:Lower(Text(e.Value.requestId)),location:Text(e.Value.location),employee:Text(e.Value.employeeNo),state:Lower(Text(e.Value.state)),accepted:Text(e.Value.acceptedAt),updated:Text(e.Value.updatedAt),expected:Value(e.Value.expectedCount),saved:Value(e.Value.savedCount),doc:Text(e.Value.document),partial:Text(e.Value.partialDocument),message:Text(e.Value.message),retryable:IfError(Coalesce(Boolean(e.Value.retryable),false),false)}),!IsBlank(id) && location="CAMP" && !IsBlank(employee) && !IsBlank(accepted) && expected>0 && state in ["accepted","processing","partial","failed","complete"] && (state<>"complete" || (!IsBlank(doc) && saved=expected))),"accepted",SortOrder.Descending));Set(qHistoryOwner,actor);Set(qCallerHistoryOwner,If(IfError(Coalesce(Boolean(reply.supportsCallerIssue),false),false),actor,Blank()));Set(qJobsPage,Min(Coalesce(qJobsPage,0),Max(0,RoundUp(CountRows(qJobs)/3,0)-1)));With({job:LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP")},If(!IsBlank(job.id) && !IsBlank(LookUp(qJobs,id=job.id && employee=job.employee && expected=job.expected)),Clear(qOutbox);IfError(ClearData(qDeviceKey);true,false);Set(qAckId,job.id);Set(qAckOwner,actor))),Set(qHistoryError,"Сервер хүсэлтийн жагсаалтыг баталгаажуулсангүй. Дахин шинэчилнэ үү."))));true,If(qHistoryFlight=flight && actor=Lower(Trim(User().Email)),Set(qHistoryError,"Хүсэлтүүдийг уншиж чадсангүй. Дахин шинэчилнэ үү."));false));If(qHistoryFlight=flight,Set(qHistoryBusy,false);Set(qHistoryFlight,Blank()))))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: =If(qHistoryBusy,"Уншиж байна…","Шинэчлэх")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title)))
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,167*Parent.Width/360,215*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,80*Parent.Height/720,79*Parent.Height/680)
+      - qHistoryNotice:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#844310")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.Transparent
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,55*Parent.Height/720,51*Parent.Height/680)
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: =If(qJournalFaultOwner=Lower(Trim(User().Email)) && !IsBlank(qJournalFault),qJournalFault,If(!IsBlank(qRepairPayload) && qRepairOwner=Lower(Trim(User().Email)),"Хүсэлт хүлээн аваагүй. " & qRepairEmployee & " ажилтнаа сонгож сагсаа засна уу.",!IsBlank(qHistoryError),qHistoryError,qHistoryOwner=Lower(Trim(User().Email)) && IsBlank(qCallerHistoryOwner) && !IsEmpty(qOutbox),"Хүсэлтийн төлөвийг харж болно. Дахин илгээхийн өмнө жагсаалтаа шинэчилнэ үү.",!IsBlank(LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP").id),"Баталгаажаагүй хүсэлт · " & LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP").employee & Char(10) & LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP").id,qHistoryBusy || qHistoryOwner<>Lower(Trim(User().Email)),"Хүсэлтүүдийг уншиж байна…",IsEmpty(qJobs) && IsBlank(qDetailId),"Хадгалагдсан хүсэлт алга.",qAckOwner=Lower(Trim(User().Email)) && !IsBlank(qAckId) && IsBlank(qDetailId),"Сүүлд хүлээн авсан хүсэлт" & Char(10) & qAckId,""))
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title)))
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,1050*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,127*Parent.Height/720,135*Parent.Height/680)
+      - qResend:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =If(!(qCallerHistoryOwner=Lower(Trim(User().Email)) && qHistoryOwner=Lower(Trim(User().Email))),DisplayMode.Disabled,If(qSending || !Connection.Connected,DisplayMode.Disabled,DisplayMode.Edit))
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,42*Parent.Height/720,46*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =With({job:LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP"),actor:Lower(Trim(User().Email)),flight:Text(GUID())},If((qCallerHistoryOwner=Lower(Trim(User().Email)) && qHistoryOwner=Lower(Trim(User().Email))) && qCacheOwner=Lower(Trim(User().Email)) && !Coalesce(qSending,false) && !IsBlank(job.id) && (!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && Connection.Connected,Set(qSendFlight,flight);Set(qSending,true);Set(qNotice,"Хүсэлтийг серверт хүргэж байна…");IfError(With({reply:ParseJSON(TMEA25IssueAsCaller.Run(job.payload).itemsjson)},If(qSendFlight=flight && actor=Lower(Trim(User().Email)) && (!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP").id=job.id,With({state:Lower(Text(reply.state))},If(Lower(Text(reply.requestId))=Lower(job.id) && Text(reply.location)=job.location && Text(reply.employeeNo)=job.employee && Value(reply.expectedCount)=job.expected && !IsBlank(Text(reply.acceptedAt)) && state in ["accepted","processing","partial","failed","complete"] && (state<>"complete" || (Lower(Text(reply.ok))="true" && !IsBlank(Text(reply.document)) && Value(reply.savedCount)=job.expected)),Clear(qOutbox);IfError(ClearData(qDeviceKey);true,false);Set(qAckId,job.id);Set(qAckOwner,actor);Set(qNotice,"Хүсэлтийг сервер хүлээн авсан. Явцыг «Миний хүсэлтүүд»-ээс харна уу.");Notify(qNotice,NotificationType.Success);Select(qHistoryReload),Lower(Text(reply.requestId))=Lower(job.id) && Text(reply.location)=job.location && state="validation" && Text(reply.code)="invalid_cart" && Lower(Text(reply.ok))="false" && Lower(Text(reply.accepted))="false" && Lower(Text(reply.canEdit))="true" && Lower(Text(reply.retryable))="false" && IsBlank(Text(reply.document)) && IsBlank(Text(reply.partialDocument)),Clear(qOutbox);IfError(ClearData(qDeviceKey);true,false);Set(qRepairOwner,actor);Set(qRepairEmployee,job.employee);Set(qRepairPayload,job.payload);Set(qNotice,Coalesce(Text(reply.message),"Сагсаа шалгаад дахин илгээнэ үү."));Set(qHistoryError,qNotice);If(App.ActiveScreen=ScrIssueA25Test && a25Selected.code=job.employee && IsBlank(a25Request) && IsBlank(a25Document),Set(issueConfirm,false);Set(a25Review,true);Set(issueSubmissionMessage,qNotice);Set(qRepairPayload,Blank()));Notify(qNotice,NotificationType.Warning),Set(qNotice,If(Lower(Text(reply.requestId))=Lower(job.id),Coalesce(Text(reply.message),"Хүсэлт хүлээн авсан эсэх баталгаажаагүй байна. Миний хүсэлтүүдээс ижил дугаараар шалгана уу."),"Хүсэлт хүлээн авсан эсэх баталгаажаагүй байна. Миний хүсэлтүүдээс ижил дугаараар шалгана уу."));Notify(qNotice,NotificationType.Warning)))));true,If(qSendFlight=flight && actor=Lower(Trim(User().Email)),Set(qNotice,"Хүсэлт хүлээн авсан эсэх баталгаажаагүй байна. Миний хүсэлтүүдээс ижил дугаараар шалгана уу.");Notify(qNotice,NotificationType.Warning));false);If(qSendFlight=flight,Set(qSendFlight,Blank());Set(qSending,false))))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="Ижил дугаараар хүргэх"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qCacheOwner=Lower(Trim(User().Email)) && !IsBlank(LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP").id)
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,158*Parent.Width/360,355*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,186*Parent.Width/360,720*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,80*Parent.Height/720,79*Parent.Height/680)
+      - qJob0:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =Align.Left
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,89*Parent.Height/720,73*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =Set(qDetailId,Last(FirstN(qJobs,3*Coalesce(qJobsPage,0)+1)).id)
+            PaddingLeft: =16
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =15*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: =With({r:Last(FirstN(qJobs,3*Coalesce(qJobsPage,0)+1))},Switch(r.state,"accepted","Хүлээн авсан","processing","BC-д бичиж байна","complete","Бүрэн хадгалсан","partial","Дутуу хадгалсан","failed","Алдаа гарсан","pending","Хүлээгдэж байна","Төлөв тодорхойгүй") & "   ·   " & r.employee & Char(10) & If(r.state="complete",r.doc,Coalesce(r.partial,"CAMP")) & "   ·   " & Coalesce(r.saved,0) & "/" & r.expected & " мөр")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && IsBlank(qDetailId) && CountRows(qJobs)>=3*Coalesce(qJobsPage,0)+1
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,1050*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,193*Parent.Height/720,193*Parent.Height/680)
+      - qJob1:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =Align.Left
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,89*Parent.Height/720,73*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =Set(qDetailId,Last(FirstN(qJobs,3*Coalesce(qJobsPage,0)+2)).id)
+            PaddingLeft: =16
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =15*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: =With({r:Last(FirstN(qJobs,3*Coalesce(qJobsPage,0)+2))},Switch(r.state,"accepted","Хүлээн авсан","processing","BC-д бичиж байна","complete","Бүрэн хадгалсан","partial","Дутуу хадгалсан","failed","Алдаа гарсан","pending","Хүлээгдэж байна","Төлөв тодорхойгүй") & "   ·   " & r.employee & Char(10) & If(r.state="complete",r.doc,Coalesce(r.partial,"CAMP")) & "   ·   " & Coalesce(r.saved,0) & "/" & r.expected & " мөр")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && IsBlank(qDetailId) && CountRows(qJobs)>=3*Coalesce(qJobsPage,0)+2
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,1050*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,292*Parent.Height/720,279*Parent.Height/680)
+      - qJob2:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =Align.Left
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,89*Parent.Height/720,73*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =Set(qDetailId,Last(FirstN(qJobs,3*Coalesce(qJobsPage,0)+3)).id)
+            PaddingLeft: =16
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =15*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: =With({r:Last(FirstN(qJobs,3*Coalesce(qJobsPage,0)+3))},Switch(r.state,"accepted","Хүлээн авсан","processing","BC-д бичиж байна","complete","Бүрэн хадгалсан","partial","Дутуу хадгалсан","failed","Алдаа гарсан","pending","Хүлээгдэж байна","Төлөв тодорхойгүй") & "   ·   " & r.employee & Char(10) & If(r.state="complete",r.doc,Coalesce(r.partial,"CAMP")) & "   ·   " & Coalesce(r.saved,0) & "/" & r.expected & " мөр")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && IsBlank(qDetailId) && CountRows(qJobs)>=3*Coalesce(qJobsPage,0)+3
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,1050*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,391*Parent.Height/720,365*Parent.Height/680)
+      - qListNext:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,46*Parent.Height/720,46*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =Set(qJobsPage,Mod(qJobsPage+1,RoundUp(CountRows(qJobs)/3,0)))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="Дараагийн хүсэлтүүд   " & (qJobsPage+1) & "/" & RoundUp(CountRows(qJobs)/3,0)
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && IsBlank(qDetailId) && CountRows(qJobs)>3
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,1050*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,497*Parent.Height/720,460*Parent.Height/680)
+      - qDetailBack:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,43*Parent.Height/720,42*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =Set(qDetailId,Blank())
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="‹  Жагсаалт"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && !IsBlank(qDetailId) && !IsBlank(LookUp(qJobs,id=qDetailId).id)
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,328*Parent.Width/360,282*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,188*Parent.Height/720,191*Parent.Height/680)
+      - qDetailTitle:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#202225")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.Transparent
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =FontWeight.Semibold
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,56*Parent.Height/720,55*Parent.Height/680)
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            Role: =%TextRole.RESERVED%.Default
+            Size: =19*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: =With({r:LookUp(qJobs,id=qDetailId)},Switch(r.state,"accepted","Хүлээн авсан","processing","BC-д бичиж байна","complete","Бүрэн хадгалсан","partial","Дутуу хадгалсан","failed","Алдаа гарсан","pending","Хүлээгдэж байна","Төлөв тодорхойгүй") & "  ·  " & r.employee)
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && !IsBlank(qDetailId) && !IsBlank(LookUp(qJobs,id=qDetailId).id)
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,1050*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,239*Parent.Height/720,246*Parent.Height/680)
+      - qDetails:
+          Control: Label@2.5.1
+          Properties:
+            Align: =%Align.RESERVED%.Left
+            BorderColor: =RGBA(0, 0, 0, 1)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            Color: =ColorValue("#202225")
+            DisabledColor: =RGBA(186, 186, 186, 1)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.Transparent
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,221*Parent.Height/720,198*Parent.Height/680)
+            Live: =%Live.RESERVED%.Off
+            Overflow: =%Overflow.RESERVED%.Hidden
+            Role: =%TextRole.RESERVED%.Default
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: =With({r:LookUp(qJobs,id=qDetailId)},"Хүсэлт  " & r.id & Char(10) & "Агуулах  " & r.location & Char(10) & "BC-д хадгалсан мөр  " & Coalesce(r.saved,0) & "/" & r.expected & Char(10) & If(!IsBlank(r.doc),"Ноорог  " & r.doc & Char(10),!IsBlank(r.partial),"Дутуу ноорог  " & r.partial & Char(10),"") & If(!IsBlank(r.updated),"Шинэчилсэн  " & IfError(Text(DateTimeValue(r.updated),"yyyy-mm-dd hh:mm"),r.updated) & Char(10),"") & r.message)
+            VerticalAlign: =VerticalAlign.Top
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && !IsBlank(qDetailId) && !IsBlank(LookUp(qJobs,id=qDetailId).id)
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,1050*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,294*Parent.Height/720,305*Parent.Height/680)
+      - qCheckOne:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =If(qDetailBusy || qSending || !Connection.Connected,DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,44*Parent.Height/720,47*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =With({job:If(!IsBlank(qDetailId),LookUp(qJobs,id=qDetailId),LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP")),actor:Lower(Trim(User().Email)),flight:Text(GUID())},If((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && !IsBlank(job.id) && Connection.Connected && !qDetailBusy,Set(qDetailFlight,flight);Set(qDetailBusy,true);IfError(With({reply:ParseJSON(TMEIssueA25Test.Run(JSON({mode:"queuedStatus",id:job.id,location:"CAMP"})).itemsjson)},If(qDetailFlight=flight && actor=Lower(Trim(User().Email)) && (!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && App.ActiveScreen=ScrIssueRequests,With({state:Lower(Text(reply.state))},If(Lower(Text(reply.requestId))=Lower(job.id) && Text(reply.location)=job.location && Text(reply.employeeNo)=job.employee && Value(reply.expectedCount)=job.expected && !IsBlank(Text(reply.acceptedAt)) && state in ["accepted","processing","partial","failed","complete"] && (state<>"complete" || (Lower(Text(reply.ok))="true" && !IsBlank(Text(reply.document)) && Value(reply.savedCount)=job.expected)),With({found:LookUp(qJobs,id=job.id),entry:{id:Lower(Text(reply.requestId)),location:Text(reply.location),employee:Text(reply.employeeNo),state:Lower(Text(reply.state)),accepted:Text(reply.acceptedAt),updated:Text(reply.updatedAt),expected:Value(reply.expectedCount),saved:Value(reply.savedCount),doc:Text(reply.document),partial:Text(reply.partialDocument),message:Text(reply.message),retryable:IfError(Coalesce(Boolean(reply.retryable),false),false)}},If(IsBlank(found.id),Collect(qJobs,entry);true,Patch(qJobs,found,entry);true));Set(qHistoryOwner,actor);If(LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP").id=job.id,Clear(qOutbox);IfError(ClearData(qDeviceKey);true,false));Set(qDetailId,job.id);Set(qHistoryError,""),Set(qHistoryError,If(Lower(Text(reply.requestId))=Lower(job.id),Coalesce(Text(reply.message),"Хүсэлт хүлээн авсан эсэх баталгаажаагүй байна. Миний хүсэлтүүдээс ижил дугаараар шалгана уу."),"Хүсэлт хүлээн авсан эсэх баталгаажаагүй байна. Миний хүсэлтүүдээс ижил дугаараар шалгана уу."))))));true,If(qDetailFlight=flight && actor=Lower(Trim(User().Email)),Set(qHistoryError,"Хүсэлт хүлээн авсан эсэх баталгаажаагүй байна. Миний хүсэлтүүдээс ижил дугаараар шалгана уу."));false);If(qDetailFlight=flight,Set(qDetailBusy,false))))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="Хүсэлтийн төлөв шалгах"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && !IsBlank(qDetailId) && !IsBlank(LookUp(qJobs,id=qDetailId).id)) || ((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qCacheOwner=Lower(Trim(User().Email)) && !IsBlank(LookUp(qOutbox,owner=Lower(Trim(User().Email)) && location="CAMP").id))
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,533*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,542*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,581*Parent.Height/720,515*Parent.Height/680)
+      - qRetry:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =ColorValue("#202225")
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =Color.White
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,45*Parent.Height/720,47*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =With({job:LookUp(qJobs,id=qDetailId),actor:Lower(Trim(User().Email)),flight:Text(GUID())},If((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qCallerHistoryOwner=Lower(Trim(User().Email)) && qHistoryOwner=Lower(Trim(User().Email)) && !qDetailBusy && Connection.Connected && job.retryable && job.state in ["partial","failed"],Set(qDetailFlight,flight);Set(qDetailBusy,true);IfError(With({reply:ParseJSON(TMEA25IssueAsCaller.Run(JSON({mode:"retryQueued",id:job.id,location:"CAMP"})).itemsjson)},If(actor=Lower(Trim(User().Email)) && qDetailFlight=flight,If(Lower(Text(reply.requestId))=job.id,Set(qHistoryError,Text(reply.message)),Set(qHistoryError,"Хүсэлтийн төлөв тодорхойгүй байна."))));true,Set(qHistoryError,"Хүсэлтийн төлөв тодорхойгүй байна. Шинэчилж шалгана уу.");false);If(qDetailFlight=flight,Set(qDetailBusy,false);Select(qHistoryReload))))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =14*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="Ижил хүсэлтийг үргэлжлүүлэх"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))) && qHistoryOwner=Lower(Trim(User().Email)) && !IsBlank(qDetailId) && !IsBlank(LookUp(qJobs,id=qDetailId).id) && LookUp(qJobs,id=qDetailId).retryable && LookUp(qJobs,id=qDetailId).state in ["partial","failed"]) && qCallerHistoryOwner=Lower(Trim(User().Email)) && qHistoryOwner=Lower(Trim(User().Email))
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,513*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,25*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,525*Parent.Height/720,515*Parent.Height/680)
+      - qNextWorker:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorValue("#DBD7D1")
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =1
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#C34810")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =If(App.Width<First(App.SizeBreakpoints).Value,48*Parent.Height/720,46*Parent.Height/680)
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorFade(Self.Fill, 20%)
+            OnSelect: =If((!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title))),Set(qNextOwner,Lower(Trim(User().Email)));Navigate(ScrIssueA25Test,ScreenTransition.None))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =9
+            RadiusBottomRight: =9
+            RadiusTopLeft: =9
+            RadiusTopRight: =9
+            Size: =15*If(App.Width<First(App.SizeBreakpoints).Value,Min(App.Width/360,App.Height/720),Min(App.Width/1100,App.Height/680))
+            Text: ="Дараагийн ажилтан  →"
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =(!IsBlank(Lower(Trim(User().Email))) && (Lower(Trim(User().Email))="od.u@tme.mn" || (pgAclState="granted" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|issue|" in pgAccess.Title)))
+            Width: =If(App.Width<First(App.SizeBreakpoints).Value,330*Parent.Width/360,367*Parent.Width/1100)
+            X: =If(App.Width<First(App.SizeBreakpoints).Value,15*Parent.Width/360,708*Parent.Width/1100)
+            Y: =If(App.Width<First(App.SizeBreakpoints).Value,654*Parent.Height/720,615*Parent.Height/680)
