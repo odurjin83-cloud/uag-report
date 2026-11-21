@@ -1,0 +1,1 @@
+If(Coalesce(varPerfDiagV1015,false) && !IsBlank(varPerfLastMsgV1015),Notify(varPerfLastMsgV1015,NotificationType.Information,6000);Set(varPerfLastMsgV1015,Blank()),Set(varCountMenuV21,true);SetFocus(countMenuItemV21_0))

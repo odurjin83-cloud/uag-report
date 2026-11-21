@@ -1,0 +1,1 @@
+If(Coalesce(varPerfDiagV1015,false) && !IsBlank(varPerfShortV1015),varPerfShortV1015,"Локал · " & CountRows(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !Synced && ((Lower(User().Email)="od.u@tme.mn" || pgAccess.LocationCode="*") || ("|" & Upper(LocationCode) & "|") in pgAccess.LocationCode))))

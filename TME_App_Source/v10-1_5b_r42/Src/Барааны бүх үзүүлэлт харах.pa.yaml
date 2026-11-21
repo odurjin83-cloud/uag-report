@@ -1,0 +1,1763 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  Барааны бүх үзүүлэлт харах:
+    Properties:
+      Fill: =RGBA(255,255,255,1)
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      OnVisible: |-
+        =With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+         With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+               valid:!IsBlank(prior.ID) && prior.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+               pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+            If(IsBlank(principal),
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+               !Connection.Connected,
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+                If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='Барааны бүх үзүүлэлт харах',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+               pending && same && Coalesce(pgAclConnected,false),
+                If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+               !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+                With({rid:GUID()},
+                    Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+                    If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+                    Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+                    With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+                     If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                       If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='Барааны бүх үзүүлэлт харах',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                         !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                         IfError(
+                          With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages-TEST-5b" && UserEmail=principal)},
+                            If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                              If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='Барааны бүх үзүүлэлт харах',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                                Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                                If(IsBlank(candidate.ID) || candidate.CompanyCode<>"TME-Inventory-Pages-TEST-5b" || Lower(Trim(candidate.UserEmail))<>principal,
+                                     Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                                   !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                                   !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                                   Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                          If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='Барааны бүх үзүүлэлт харах',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+            )
+         ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+        )
+      Width: =App.Width
+    Children:
+      - pgDenied317:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =76
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgAclState="checking","Эрх шалгаж байна…",Switch(pgAclState,"checking","Эрх шалгаж байна…","signIn","Microsoft 365-д нэвтэрнэ үү","readError","SharePoint-оос эрх уншиж чадсангүй","missing","Энэ нэвтрэх нэрээр эрхийн бүртгэл харагдсангүй","inactive","Эрхийн бүртгэл идэвхгүй","expired","Эрхийн хугацаа дууссан","offline","Эрх шалгахын тулд онлайн орно уу","Энэ хуудасны эрх олгогдоогүй") & " · Профайл")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            Width: =Min(320,Parent.Width-24)
+            X: =Max(12,(Parent.Width-320)/2)
+            Y: =Max(12,(Parent.Height-76)/2)
+      - RectQuickActionBar2:
+          Control: Rectangle@2.3.0
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(88)*((App.Height/1136))
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =((Parent.Width/((App.Width/640))))*((App.Width/640))
+            X: =(0)*((App.Width/640))
+            Y: =(0)*((App.Height/1136))
+      - IconCancel1:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            AccessibleLabel: =Self.Tooltip
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(131, 24, 75, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(88)*((App.Height/1136))
+            Icon: =Icon.Cancel
+            OnSelect: =Navigate('нүүр')
+            PaddingBottom: =(22)*((App.Height/1136))
+            PaddingLeft: =(22)*((App.Width/640))
+            PaddingRight: =(22)*((App.Width/640))
+            PaddingTop: =(22)*((App.Height/1136))
+            TabIndex: =0
+            Tooltip: ="Cancel item"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(88)*((App.Width/640))
+            X: =(0)*((App.Width/640))
+            Y: =(0)*((App.Height/1136))
+      - IconAccept1:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            AccessibleLabel: =Self.Tooltip
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(131, 24, 75, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(88)*((App.Height/1136))
+            Icon: =Icon.Check
+            OnSelect: =SubmitForm(EditForm1)
+            PaddingBottom: =(22)*((App.Height/1136))
+            PaddingLeft: =(22)*((App.Width/640))
+            PaddingRight: =(22)*((App.Width/640))
+            PaddingTop: =(22)*((App.Height/1136))
+            TabIndex: =0
+            Tooltip: ="Submit item"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(88)*((App.Width/640))
+            X: =((Parent.Width/((App.Width/640))) - (Self.Width/((App.Width/640))))*((App.Width/640))
+            Y: =(0)*((App.Height/1136))
+      - LblAppName2:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(0, 0, 0, 1)
+            Color: =RGBA(255, 255, 255, 1)
+            Font: =Font.'Open Sans'
+            Height: =(88)*((App.Height/1136))
+            Size: =(27)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Барааны үндсэн үзүүлэлт"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =((Parent.Width/((App.Width/640))) - (IconCancel1.Width/((App.Width/640))) - (IconAccept1.Width/((App.Width/640))))*((App.Width/640))
+            Wrap: =false
+            X: =((IconCancel1.X/((App.Width/640))) + (IconCancel1.Width/((App.Width/640))))*((App.Width/640))
+            Y: =(0)*((App.Height/1136))
+      - EditForm1:
+          Control: Form@2.4.4
+          Variant: Classic
+          Layout: Vertical
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            DataSource: ='items (v2.0)'
+            Height: =(952)*((App.Height/1136))
+            Item: =First('items (v2.0)')
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|stock|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =((Parent.Width/((App.Width/640))))*((App.Width/640))
+            X: =(0)*((App.Width/640))
+            Y: =(184)*((App.Height/1136))
+          Children:
+            - General Product Posting Group Code_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="generalProductPostingGroupCode"
+                  Default: =ThisItem.'General Product Posting Group Code'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'generalProductPostingGroupCode')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'generalProductPostingGroupCode')
+                  Required: =false
+                  Update: =DataCardValue36.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(8)*((App.Height/1136))
+                Children:
+                  - DataCardKey36:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue36:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey36.Y/((App.Height/1136))) + (DataCardKey36.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage35:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue36.Y/((App.Height/1136))) + (DataCardValue36.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible35:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey36.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey36.Y/((App.Height/1136))))*((App.Height/1136))
+            - General Product Posting Group Id_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualView
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="generalProductPostingGroupId"
+                  Default: =ThisItem.'General Product Posting Group Id'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'generalProductPostingGroupId')
+                  Height: =(40)*((App.Height/1136))
+                  Required: =false
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(9)*((App.Height/1136))
+                Children:
+                  - DataCardKey37:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue37:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldValue
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(131, 24, 75, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(40)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Default
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey37.Y/((App.Height/1136))) + (DataCardKey37.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+            - Base Unit Of Measure Code_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="baseUnitOfMeasureCode"
+                  Default: =ThisItem.'Base Unit Of Measure Code'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'baseUnitOfMeasureCode')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'baseUnitOfMeasureCode')
+                  Required: =false
+                  Update: =DataCardValue38.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(10)*((App.Height/1136))
+                Children:
+                  - DataCardKey38:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue38:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey38.Y/((App.Height/1136))) + (DataCardKey38.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage36:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue38.Y/((App.Height/1136))) + (DataCardValue38.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible36:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey38.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey38.Y/((App.Height/1136))))*((App.Height/1136))
+            - Inventory Posting Group Code_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="inventoryPostingGroupCode"
+                  Default: =ThisItem.'Inventory Posting Group Code'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'inventoryPostingGroupCode')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'inventoryPostingGroupCode')
+                  Required: =false
+                  Update: =DataCardValue39.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(11)*((App.Height/1136))
+                Children:
+                  - DataCardKey39:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue39:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey39.Y/((App.Height/1136))) + (DataCardKey39.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage37:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue39.Y/((App.Height/1136))) + (DataCardValue39.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible37:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey39.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey39.Y/((App.Height/1136))))*((App.Height/1136))
+            - Tax Group Code_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="taxGroupCode"
+                  Default: =ThisItem.'Tax Group Code'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'taxGroupCode')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'taxGroupCode')
+                  Required: =false
+                  Update: =DataCardValue40.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(12)*((App.Height/1136))
+                Children:
+                  - DataCardKey40:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue40:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey40.Y/((App.Height/1136))) + (DataCardKey40.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage38:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue40.Y/((App.Height/1136))) + (DataCardValue40.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible38:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey40.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey40.Y/((App.Height/1136))))*((App.Height/1136))
+            - Unit Cost_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicNumberEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="unitCost"
+                  Default: =ThisItem.'Unit Cost'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'unitCost')
+                  Height: =(50)*((App.Height/1136))
+                  Required: =false
+                  Update: =Value(DataCardValue41.Text)
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(13)*((App.Height/1136))
+                Children:
+                  - DataCardKey41:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue41:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Format: =TextFormat.Number
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey41.Y/((App.Height/1136))) + (DataCardKey41.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage39:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue41.Y/((App.Height/1136))) + (DataCardValue41.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible39:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey41.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey41.Y/((App.Height/1136))))*((App.Height/1136))
+            - Unit Price_DataCard1:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicNumberEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="unitPrice"
+                  Default: =ThisItem.'Unit Price'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'unitPrice')
+                  Height: =(50)*((App.Height/1136))
+                  Required: =false
+                  Update: =Value(DataCardValue42.Text)
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(14)*((App.Height/1136))
+                Children:
+                  - DataCardKey42:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue42:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Format: =TextFormat.Number
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey42.Y/((App.Height/1136))) + (DataCardKey42.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage40:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue42.Y/((App.Height/1136))) + (DataCardValue42.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible40:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey42.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey42.Y/((App.Height/1136))))*((App.Height/1136))
+            - No._DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="number"
+                  Default: =ThisItem.'No.'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'number')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'number')
+                  Required: =false
+                  Update: =DataCardValue28.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(0)*((App.Height/1136))
+                Children:
+                  - DataCardKey28:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue28:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey28.Y/((App.Height/1136))) + (DataCardKey28.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage27:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue28.Y/((App.Height/1136))) + (DataCardValue28.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible27:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey28.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey28.Y/((App.Height/1136))))*((App.Height/1136))
+            - Display Name_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="displayName"
+                  Default: =ThisItem.'Display Name'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'displayName')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'displayName')
+                  Required: =false
+                  Update: =DataCardValue29.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(1)*((App.Height/1136))
+                Children:
+                  - DataCardKey29:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue29:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey29.Y/((App.Height/1136))) + (DataCardKey29.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage28:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue29.Y/((App.Height/1136))) + (DataCardValue29.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible28:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey29.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey29.Y/((App.Height/1136))))*((App.Height/1136))
+            - Display Name 2_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="displayName2"
+                  Default: =ThisItem.'Display Name 2'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'displayName2')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'displayName2')
+                  Required: =false
+                  Update: =DataCardValue30.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(2)*((App.Height/1136))
+                Children:
+                  - DataCardKey30:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue30:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey30.Y/((App.Height/1136))) + (DataCardKey30.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage29:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue30.Y/((App.Height/1136))) + (DataCardValue30.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible29:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey30.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey30.Y/((App.Height/1136))))*((App.Height/1136))
+            - Type_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="type"
+                  Default: =ThisItem.Type
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'type')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'type')
+                  Required: =false
+                  Update: =DataCardValue31.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(3)*((App.Height/1136))
+                Children:
+                  - DataCardKey31:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue31:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey31.Y/((App.Height/1136))) + (DataCardKey31.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage30:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue31.Y/((App.Height/1136))) + (DataCardValue31.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible30:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey31.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey31.Y/((App.Height/1136))))*((App.Height/1136))
+            - Item Category Code_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="itemCategoryCode"
+                  Default: =ThisItem.'Item Category Code'
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'itemCategoryCode')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'itemCategoryCode')
+                  Required: =false
+                  Update: =DataCardValue32.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(4)*((App.Height/1136))
+                Children:
+                  - DataCardKey32:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue32:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey32.Y/((App.Height/1136))) + (DataCardKey32.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage31:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue32.Y/((App.Height/1136))) + (DataCardValue32.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible31:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey32.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey32.Y/((App.Height/1136))))*((App.Height/1136))
+            - Blocked_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicToggleEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="blocked"
+                  Default: =ThisItem.Blocked
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'blocked')
+                  Height: =(50)*((App.Height/1136))
+                  Required: =false
+                  Update: =DataCardValue33.Value
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(5)*((App.Height/1136))
+                Children:
+                  - DataCardKey33:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue33:
+                      Control: Classic/Toggle@2.1.0
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(49)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        TrueFill: =RGBA(211, 66, 9, 1)
+                        Width: =(154)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey33.Y/((App.Height/1136))) + (DataCardKey33.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage32:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue33.Y/((App.Height/1136))) + (DataCardValue33.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible32:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey33.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey33.Y/((App.Height/1136))))*((App.Height/1136))
+            - GTIN_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicTextualEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="gtin"
+                  Default: =ThisItem.GTIN
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'gtin')
+                  Height: =(50)*((App.Height/1136))
+                  MaxLength: =DataSourceInfo([@'items (v2.0)'], DataSourceInfo.MaxLength, 'gtin')
+                  Required: =false
+                  Update: =DataCardValue34.Text
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(6)*((App.Height/1136))
+                Children:
+                  - DataCardKey34:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue34:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: =Parent.DisplayMode
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        MaxLength: =Parent.MaxLength
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey34.Y/((App.Height/1136))) + (DataCardKey34.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage33:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue34.Y/((App.Height/1136))) + (DataCardValue34.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible33:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey34.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey34.Y/((App.Height/1136))))*((App.Height/1136))
+            - Inventory_DataCard2:
+                Control: TypedDataCard@1.0.7
+                Variant: ClassicNumberEdit
+                IsLocked: true
+                Properties:
+                  BorderColor: =RGBA(131, 24, 75, 1)
+                  DataField: ="inventory"
+                  Default: |-
+                    =If(Lower(Trim(User().Email))="od.u@tme.mn" || (!IsBlank(pgAccess.ID) && pgAccess.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && pgAccess.LocationCode="*"),ThisItem.Inventory)
+                  DisplayName: =DataSourceInfo([@'items (v2.0)'],DataSourceInfo.DisplayName,'inventory')
+                  Height: =(50)*((App.Height/1136))
+                  Required: =false
+                  Update: |-
+                    =If(Lower(Trim(User().Email))="od.u@tme.mn" || (!IsBlank(pgAccess.ID) && pgAccess.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && pgAccess.LocationCode="*"),Value(DataCardValue35.Text),ThisItem.Inventory)
+                  Width: =(640)*((App.Width/640))
+                  X: =(0)*((App.Width/640))
+                  Y: =(7)*((App.Height/1136))
+                Children:
+                  - DataCardKey35:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldName
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =(48)*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        Wrap: =false
+                        X: =(30)*((App.Width/640))
+                        Y: =(10)*((App.Height/1136))
+                  - DataCardValue35:
+                      Control: Classic/TextInput@2.3.2
+                      MetadataKey: FieldValue
+                      Properties:
+                        BorderColor: =If(IsBlank(Parent.Error), Parent.BorderColor, Color.Red)
+                        BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+                        Default: =Parent.Default
+                        DelayOutput: =true
+                        DisplayMode: |-
+                          =If(Lower(Trim(User().Email))="od.u@tme.mn" || (!IsBlank(pgAccess.ID) && pgAccess.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && pgAccess.LocationCode="*"),Parent.DisplayMode,DisplayMode.View)
+                        FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Format: =TextFormat.Number
+                        Height: =(70)*((App.Height/1136))
+                        HoverBorderColor: =RGBA(131, 24, 75, 1)
+                        HoverFill: =RGBA(255, 211, 205, 1)
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        RadiusBottomLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusBottomRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopLeft: =(0)*(Min(App.Width/640,App.Height/1136))
+                        RadiusTopRight: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Tooltip: =Parent.DisplayName
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardKey35.Y/((App.Height/1136))) + (DataCardKey35.Height/((App.Height/1136))) + 5)*((App.Height/1136))
+                  - ErrorMessage34:
+                      Control: Label@2.5.1
+                      MetadataKey: ErrorMessage
+                      Properties:
+                        AutoHeight: =true
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(168, 0, 0, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        FontWeight: =FontWeight.Semibold
+                        Height: =(10)*((App.Height/1136))
+                        Live: =Live.Assertive
+                        PaddingBottom: =(0)*((App.Height/1136))
+                        PaddingLeft: =(0)*((App.Width/640))
+                        PaddingRight: =(0)*((App.Width/640))
+                        PaddingTop: =(0)*((App.Height/1136))
+                        Size: =(24)*(Min(App.Width/640,App.Height/1136))
+                        Text: =Parent.Error
+                        Visible: =Parent.DisplayMode=DisplayMode.Edit
+                        Width: =((Parent.Width/((App.Width/640))) - 60)*((App.Width/640))
+                        X: =(30)*((App.Width/640))
+                        Y: =((DataCardValue35.Y/((App.Height/1136))) + (DataCardValue35.Height/((App.Height/1136))))*((App.Height/1136))
+                  - StarVisible34:
+                      Control: Label@2.5.1
+                      MetadataKey: FieldRequired
+                      Properties:
+                        Align: =Align.Center
+                        BorderColor: =RGBA(0, 0, 0, 1)
+                        BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Color: =RGBA(131, 24, 75, 1)
+                        FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+                        Font: =Font.'Open Sans'
+                        Height: =((DataCardKey35.Height/((App.Height/1136))))*((App.Height/1136))
+                        PaddingBottom: =(5)*((App.Height/1136))
+                        PaddingLeft: =(5)*((App.Width/640))
+                        PaddingRight: =(5)*((App.Width/640))
+                        PaddingTop: =(5)*((App.Height/1136))
+                        Size: =(21)*(Min(App.Width/640,App.Height/1136))
+                        Text: ="*"
+                        Visible: =And(Parent.Required, Parent.DisplayMode=DisplayMode.Edit)
+                        Width: =(30)*((App.Width/640))
+                        Wrap: =false
+                        X: =(0)*((App.Width/640))
+                        Y: =((DataCardKey35.Y/((App.Height/1136))))*((App.Height/1136))

@@ -1,0 +1,818 @@
+# ************************************************************************************************
+# Warning: YAML source code for Canvas Apps should only be used to review changes made within Power Apps Studio and for minor edits (Preview).
+# Use the maker portal to create and edit your Power Apps.
+# 
+# The schema file for Canvas Apps is available at https://go.microsoft.com/fwlink/?linkid=2304907
+# 
+# For more information, visit https://go.microsoft.com/fwlink/?linkid=2292623
+# ************************************************************************************************
+Screens:
+  ScrSync:
+    Properties:
+      Fill: =RGBA(255,255,255,1)
+      Height: =App.Height
+      LoadingSpinnerColor: =RGBA(211, 66, 9, 1)
+      OnVisible: |-
+        =With({principal:Lower(Trim(User().Email)),clock:Now(),prior:pgAccess,priorState:pgAclState},
+         With({same:!IsBlank(principal) && pgAclPrincipal=principal,
+               valid:!IsBlank(prior.ID) && prior.CompanyCode="TME-Inventory-Pages-TEST-5b" && Lower(Trim(prior.UserEmail))=principal && prior.Active && (IsBlank(prior.ExpiresAt) || prior.ExpiresAt>clock),
+               pending:Coalesce(pgAclBusy,false) && pgAclPendingFor=principal && !IsBlank(pgAclPendingAt) && pgAclPendingAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               fresh:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds),
+               withinWindow:!IsBlank(pgAclCheckedAt) && pgAclCheckedAt>DateAdd(clock,-60,TimeUnit.Seconds)},
+            If(IsBlank(principal),
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAccess,Blank());Set(pgAclPrincipal,Blank());Set(pgAclConnected,false);Set(pgAclState,"signIn"),
+               !Connection.Connected,
+                Set(pgAclReadId,Blank());Set(pgAclBusy,false);Set(pgAclConnected,false);
+                If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrSync',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+               pending && same && Coalesce(pgAclConnected,false),
+                If(!valid || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking")),
+               !same || !Coalesce(pgAclConnected,false) || !fresh || (pgAclState="granted" && !valid) || pgAclState="checking" || pgAclState="offline" || pgAclState="signIn",
+                With({rid:GUID()},
+                    Set(pgAclReadId,rid);Set(pgAclBusy,true);Set(pgAclPendingAt,clock);Set(pgAclPendingFor,principal);
+                    If(!same || !valid || !Coalesce(pgAclConnected,false) || !withinWindow,Set(pgAccess,Blank());Set(pgAclState,"checking"));
+                    Set(pgAclPrincipal,principal);Set(pgAclConnected,true);
+                    With({refreshed:IfError(Refresh(AssetUserAccess);true,false)},
+                     If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                       If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrSync',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                         !refreshed,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),
+                         IfError(
+                          With({candidate:LookUp(AssetUserAccess,CompanyCode="TME-Inventory-Pages-TEST-5b" && UserEmail=principal)},
+                            If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,
+                              If(!Connection.Connected,Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrSync',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline")),
+                                Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());
+                                If(IsBlank(candidate.ID) || candidate.CompanyCode<>"TME-Inventory-Pages-TEST-5b" || Lower(Trim(candidate.UserEmail))<>principal,
+                                     Set(pgAccess,Blank());Set(pgAclState,"missing"),
+                                   !Coalesce(candidate.Active,false),Set(pgAccess,Blank());Set(pgAclState,"inactive"),
+                                   !IsBlank(candidate.ExpiresAt) && candidate.ExpiresAt<=Now(),Set(pgAccess,Blank());Set(pgAclState,"expired"),
+                                   Set(pgAccess,candidate);Set(pgAclState,"granted"))));true),
+                          If(pgAclReadId=rid && Lower(Trim(User().Email))=principal,If(Connection.Connected,Set(pgAclBusy,false);Set(pgAclCheckedAt,Now());Set(pgAccess,Blank());Set(pgAclState,"readError"),Set(pgAclBusy,false);Set(pgAclConnected,false);If(same && valid && priorState="granted",Set(pgAccess,prior);Set(pgAclState,"granted");If(App.ActiveScreen='ScrSync',Notify("Энэ хуудас офлайн үед хаалттай. Сүлжээнд холбогдсоны дараа нээнэ үү.",NotificationType.Warning);Back()),Set(pgAccess,Blank());Set(pgAclState,"offline"))));false)))))
+            )
+         ));If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+        )
+      Width: =App.Width
+    Children:
+      - pgDenied1211:
+          Control: Classic/Button@2.2.0
+          Properties:
+            Align: =%Align.RESERVED%.Center
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =%BorderStyle.RESERVED%.Solid
+            BorderThickness: =0
+            Color: =Color.White
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            DisplayMode: =%DisplayMode.RESERVED%.Edit
+            Fill: =ColorValue("#202225")
+            Font: =%Font.RESERVED%.'Open Sans'
+            FontWeight: =%FontWeight.RESERVED%.Normal
+            Height: =76
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =Self.Color
+            HoverFill: =ColorValue("#FFF0E6")
+            OnSelect: =Set(varPView,"profile");Navigate(ScrAccess,ScreenTransition.Fade)
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =ColorValue("#FFD8C2")
+            Size: =14
+            Text: =If(pgAclState="checking","Эрх шалгаж байна…",Switch(pgAclState,"checking","Эрх шалгаж байна…","signIn","Microsoft 365-д нэвтэрнэ үү","readError","SharePoint-оос эрх уншиж чадсангүй","missing","Энэ нэвтрэх нэрээр эрхийн бүртгэл харагдсангүй","inactive","Эрхийн бүртгэл идэвхгүй","expired","Эрхийн хугацаа дууссан","offline","Эрх шалгахын тулд онлайн орно уу","Энэ хуудасны эрх олгогдоогүй") & " · Профайл")
+            VerticalAlign: =%VerticalAlign.RESERVED%.Middle
+            Visible: =!(Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))
+            Width: =Min(320,Parent.Width-24)
+            X: =Max(12,(Parent.Width-320)/2)
+            Y: =Max(12,(Parent.Height-76)/2)
+      - lblLastStockEntry:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(44)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(14)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="Last Entry No: " &
+              Text(
+                  Coalesce(
+                      First(colStockSyncInfo).LastEntryNo,
+                      0
+                  ),
+                  "#,##0"
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(310)*((App.Width/640))
+            X: =(330)*((App.Width/640))
+            Y: =(473)*((App.Height/1136))
+      - btnSyncItems:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =BorderStyle.None
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: |-
+              =If(Coalesce(varStartupSyncRunning,false),DisplayMode.Disabled,If(
+                  varItemLoading,
+                  DisplayMode.Disabled,
+                  DisplayMode.Edit
+              ))
+            Fill: =RGBA(187, 221, 140, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: |-
+              =// ==========================================
+              // ITEM SYNC - JSON SNAPSHOT
+              // ==========================================
+              
+              If(
+                  !Connection.Connected,
+              
+                  Notify(
+                      "Интернет холболт алга байна.",
+                      NotificationType.Warning
+                  ),
+              
+                  Set(
+                      varItemLoading,
+                      true
+                  );
+              
+                  IfError(
+              
+                      // ==========================================
+                      // 1. SNAPSHOT FLOW ДУУДАХ
+                      // ==========================================
+              
+                      With({itemMasterResponse:PA_GetItemsSnapshot.Run()},
+              
+                      // ==========================================
+                      // 2. JSON -> TEMP COLLECTION
+                      // ==========================================
+              
+                      ClearCollect(
+                          colNewItemsSnapshot,
+              
+                          ForAll(
+                              Table(
+                                  ParseJSON(
+                                      Coalesce(
+                                          itemMasterResponse.itemsjson,
+                                          "[]"
+                                      )
+                                  )
+                              ) As r,
+              
+                              {
+                                  number:
+                                      Text(r.Value.number),
+              
+                                  displayName:
+                                      Text(r.Value.displayName),
+              
+                                  unitOfMeasure:
+                                      Text(r.Value.unitOfMeasure),
+              
+                                  itemCategory:
+                                      Text(r.Value.itemCategory),
+              
+                                  inventory:
+                                      If(false,0),
+              
+                                  unitCost:
+                                      Value(r.Value.unitCost),
+              
+                                  unitPrice:
+                                      Value(r.Value.unitPrice)
+                              }
+                          )
+                      ));
+              
+                      // ==========================================
+                      // 3. EMPTY PROTECTION
+                      // ==========================================
+              
+                      If(
+                          CountRows(colNewItemsSnapshot) = 0,
+              
+                          Notify(
+                              "Items snapshot хоосон ирлээ. Local items солигдоогүй.",
+                              NotificationType.Error
+                          ),
+              
+                          // ======================================
+                          // 4. LOCAL ITEMS REPLACE
+                          // ======================================
+              
+                          ClearCollect(
+                              colOfflineItems,
+                              colNewItemsSnapshot
+                          );
+              
+                          // ======================================
+                          // 5. DEVICE STORAGE-Д ХАДГАЛАХ
+                          // ======================================
+              
+                          IfError(
+              
+                              SaveData(
+                                  colOfflineItems,
+                                  "OfflineItems_TEST5b_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x"))
+                              ),
+              
+                              Notify(
+                                  "Items device-д хадгалагдсангүй: " &
+                                  FirstError.Message,
+                                  NotificationType.Error
+                              ),
+              
+                              // ==================================
+                              // 6. SAVE SUCCESS
+                              // ==================================
+              
+                              Set(
+                                  varLoadedItemRows,
+                                  CountRows(colOfflineItems)
+                              );
+              
+                              Notify(
+                                  "Бараа амжилттай татагдлаа | " &
+                                  Text(
+                                      varLoadedItemRows,
+                                      "#,##0"
+                                  ) &
+                                  " мөр",
+                                  NotificationType.Success
+                              )
+                          )
+                      ),
+              
+                      // ==========================================
+                      // FLOW ERROR
+                      // ==========================================
+              
+                      Notify(
+                          "Бараа татах үед алдаа гарлаа: " &
+                          FirstError.Message,
+                          NotificationType.Error
+                      )
+                  );
+              
+                  Set(
+                      varItemLoading,
+                      false
+                  )
+              );
+              ClearCollect(colHomeLatest,ForAll(GroupBy(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !IsBlank(ItemNo)),ItemNo,LocationCode,HomeRows) As g,Patch(First(SortByColumns(g.HomeRows,"CountDate",SortOrder.Descending,"SyncKey",SortOrder.Descending)),{ItemNo:g.ItemNo,LocationCode:g.LocationCode})));
+              ClearCollect(colHomeMonths,ForAll(Sequence(8) As m,With({d:DateAdd(Date(Year(Today()),Month(Today()),1),m.Value-8,TimeUnit.Months)},{MonthDate:d,Total:CountRows(Filter(colOfflineInventory,OwnerEmail=varCountOwner && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months))),Pending:CountRows(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !Synced && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months)))})));
+              Set(varHomeAccuracy,If(IsEmpty(colHomeLatest),Blank(),CountRows(Filter(colHomeLatest,!IsBlank(OpeningBalance) && !IsBlank(CountQty) && CountQty=OpeningBalance))/CountRows(colHomeLatest)*100));
+              Set(varHomeEstimate,If(false,0))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(24)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  varItemLoading,
+                  "ТАТАЖ БАЙНА...",
+                  "БАРААГ ТАТАХ"
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(280)*((App.Width/640))
+            X: =(30)*((App.Width/640))
+            Y: =(176)*((App.Height/1136))
+      - btnSyncStock:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =BorderStyle.None
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: |-
+              =If(Coalesce(varStartupSyncRunning,false),DisplayMode.Disabled,If(
+                  varStockLoading,
+                  DisplayMode.Disabled,
+                  DisplayMode.Edit
+              ))
+            Fill: =RGBA(187, 221, 140, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: |-
+              =If(!Connection.Connected,Notify("Интернет холболт алга.",NotificationType.Warning),
+              Set(varStockLoading,true);
+              Set(varStockScopeTicket,GUID());
+              With({requestOwner:Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")),requestMail:Lower(Trim(User().Email)),ticket:varStockScopeTicket},
+                  With({response:IfError(Patch({ok:false,code:"legacy",rowcount:-1,stockjson:""},TMETEST5bStock.Run()),{ok:false,code:"unavailable",rowcount:-1,stockjson:""})},
+                      If(requestOwner=Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")) && requestMail=Lower(Trim(User().Email)) && ticket=varStockScopeTicket,
+                          Set(varAutoStockCacheError,false);
+                          Set(varStockScopeStatus,If(response.ok=true || response.code="ok","invalid_response",Coalesce(response.code,"legacy")));
+                          If(!IsBlank(requestOwner) && !IsBlank(requestMail) && response.ok=true && response.code="ok" &&
+                              !IsBlank(response.rowcount) && response.rowcount>=0 && response.rowcount=RoundDown(response.rowcount,0) &&
+                              StartsWith(Trim(response.stockjson),"[") && EndsWith(Trim(response.stockjson),"]"),
+                              IfError(
+                                  With({rows:ForAll(Table(ParseJSON(response.stockjson)) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),quantity:Value(r.Value.quantity)})},
+                                      If(CountRows(rows)=response.rowcount && CountIf(rows,IsBlank(Trim(itemNo)) || IsBlank(Trim(locationCode)) || IsBlank(quantity))=0,
+                                          Clear(colDStockBaseV17);
+              Clear(colDDiskV369);
+              Clear(colDCandidateV369);
+              Clear(colDJoinV17);
+              Clear(colDLegacyV369);
+              Clear(colPScopedStock);
+              Clear(colPhotoLocationsV28);
+              Clear(colRStock);
+              Clear(colRptWarehouseCodes);
+              Clear(colWLocationCodes);
+              Clear(colCountLocationsV19);
+              Clear(colPLocationCodes);
+              Clear(colWStock);
+              Clear(colDStock);
+              Clear(colDWarehouses);
+              RemoveIf(colRItemCandidatesV16,!Coalesce(ReportCounted,false));
+              RemoveIf(colRItems,!Coalesce(ReportCounted,false));
+              Set(varDStockReadyV17,false);
+              Set(varDStockBuiltAtV17,Blank());
+              Set(varDStockScopeV369,Blank());
+              Set(varDValue,Blank());
+              If(!IsBlank(User().EntraObjectId),IfError(ClearData("DTEST5bStockScoped1_" & Substitute(Text(User().EntraObjectId),"-",""));true,Set(varAutoStockCacheError,true);false));ClearCollect(colAutoStockV16,rows);ClearCollect(colOfflineStock,colAutoStockV16);Set(varAutoStockError,false);Set(varAutoStockUpdated,Now());Set(varStockScopeStatus,"ok");IfError(SaveData(colOfflineStock,"OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);IfError(ClearData("OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);false);false);Set(varLoadedStockRows,CountRows(colOfflineStock));Notify(If(varAutoStockCacheError,"Төхөөрөмжийн кэш шинэчлэгдсэнгүй. Онлайнаар ашиглана уу.","Татсан мөр: " & CountRows(colOfflineStock)),If(varAutoStockCacheError,NotificationType.Warning,NotificationType.Success));true,false)),
+                                  Set(varStockScopeStatus,"invalid_response");false));
+                          If(varStockScopeStatus="ok" && response.ok=true,true,
+                              Set(varAutoStockError,true);
+              Set(varAutoStockUpdated,Blank());
+              Clear(colAutoStockV16);
+              Clear(colOfflineStock);
+              Clear(colDStockBaseV17);
+              Clear(colDDiskV369);
+              Clear(colDCandidateV369);
+              Clear(colDJoinV17);
+              Clear(colDLegacyV369);
+              Clear(colPScopedStock);
+              Clear(colPhotoLocationsV28);
+              Clear(colRStock);
+              Clear(colRptWarehouseCodes);
+              Clear(colWLocationCodes);
+              Clear(colCountLocationsV19);
+              Clear(colPLocationCodes);
+              Clear(colWStock);
+              Clear(colDStock);
+              Clear(colDWarehouses);
+              RemoveIf(colRItemCandidatesV16,!Coalesce(ReportCounted,false));
+              RemoveIf(colRItems,!Coalesce(ReportCounted,false));
+              Set(varDStockReadyV17,false);
+              Set(varDStockBuiltAtV17,Blank());
+              Set(varDStockScopeV369,Blank());
+              Set(varDValue,Blank());
+              If(!IsBlank(User().EntraObjectId),IfError(ClearData("DTEST5bStockScoped1_" & Substitute(Text(User().EntraObjectId),"-",""));true,Set(varAutoStockCacheError,true);false));
+              If(!IsBlank(requestOwner),IfError(SaveData(colOfflineStock,"OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);false);IfError(ClearData("OfflineStock" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoStockCacheError,true);false));
+              Set(varLoadedStockRows,0);Notify(Switch(varStockScopeStatus,"denied","Агуулахын эрхгүй байна.","legacy","Flow-ийн хувилбар зөрсөн тул өгөгдөл шинэчлэгдсэнгүй.","Агуулахын мэдээллийг баталгаажуулж чадсангүй."),NotificationType.Warning);false),
+                          false)));
+              Set(varStockLoading,false));
+              ClearCollect(colHomeLatest,ForAll(GroupBy(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !IsBlank(ItemNo)),ItemNo,LocationCode,HomeRows) As g,Patch(First(SortByColumns(g.HomeRows,"CountDate",SortOrder.Descending,"SyncKey",SortOrder.Descending)),{ItemNo:g.ItemNo,LocationCode:g.LocationCode})));
+                            ClearCollect(colHomeMonths,ForAll(Sequence(8) As m,With({d:DateAdd(Date(Year(Today()),Month(Today()),1),m.Value-8,TimeUnit.Months)},{MonthDate:d,Total:CountRows(Filter(colOfflineInventory,OwnerEmail=varCountOwner && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months))),Pending:CountRows(Filter(colOfflineInventory,OwnerEmail=varCountOwner && !Synced && CountDate>=d && CountDate<DateAdd(d,1,TimeUnit.Months)))})));
+                            Set(varHomeAccuracy,If(IsEmpty(colHomeLatest),Blank(),CountRows(Filter(colHomeLatest,!IsBlank(OpeningBalance) && !IsBlank(CountQty) && CountQty=OpeningBalance))/CountRows(colHomeLatest)*100));
+                            Set(varHomeEstimate,If(false,0))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(24)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  varStockLoading,
+                  "ТАТАЖ БАЙНА...",
+                  "STOCK SYNC"
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(280)*((App.Width/640))
+            X: =(30)*((App.Width/640))
+            Y: =(447)*((App.Height/1136))
+      - Icon1:
+          Control: Classic/Icon@2.5.0
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(131, 24, 75, 1)
+            FocusedBorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Height: =(64)*((App.Height/1136))
+            Icon: =Icon.ChevronLeft
+            OnSelect: =Navigate('нүүр')
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(64)*((App.Width/640))
+            X: =(30)*((App.Width/640))
+            Y: =(31)*((App.Height/1136))
+      - btnSyncBins:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderStyle: =BorderStyle.None
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            DisplayMode: =If(Coalesce(varStartupSyncRunning,false),DisplayMode.Disabled,DisplayMode.Edit)
+            Fill: =RGBA(187, 221, 140, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: |-
+              =If(!Connection.Connected,Notify("Интернет холболт алга.",NotificationType.Warning),
+              Set(varBinsScopeTicket,GUID());
+              With({requestOwner:Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")),requestMail:Lower(Trim(User().Email)),ticket:varBinsScopeTicket},
+                  With({response:IfError(Patch({ok:false,code:"legacy",rowcount:-1,binsjson:""},TMETEST5bBin.Run()),{ok:false,code:"unavailable",rowcount:-1,binsjson:""})},
+                      If(requestOwner=Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")) && requestMail=Lower(Trim(User().Email)) && ticket=varBinsScopeTicket,
+                          Set(varAutoBinsCacheError,false);
+                          Set(varBinsScopeStatus,If(response.ok=true || response.code="ok","invalid_response",Coalesce(response.code,"legacy")));
+                          If(!IsBlank(requestOwner) && !IsBlank(requestMail) && response.ok=true && response.code="ok" &&
+                              !IsBlank(response.rowcount) && response.rowcount>=0 && response.rowcount=RoundDown(response.rowcount,0) &&
+                              StartsWith(Trim(response.binsjson),"[") && EndsWith(Trim(response.binsjson),"]"),
+                              IfError(
+                                  With({rows:ForAll(Table(ParseJSON(response.binsjson)) As r,{itemNo:Text(r.Value.itemNo),locationCode:Text(r.Value.locationCode),binCode:Text(r.Value.binCode)})},
+                                      If(CountRows(rows)=response.rowcount && CountIf(rows,IsBlank(Trim(itemNo)) || IsBlank(Trim(locationCode)))=0,
+                                          Clear(colPScopedBins);ClearCollect(colAutoBinsV16,rows);ClearCollect(colOfflineBins,colAutoBinsV16);Set(varAutoBinsError,false);Set(varAutoBinsUpdated,Now());Set(varBinsScopeStatus,"ok");IfError(SaveData(colOfflineBins,"OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);IfError(ClearData("OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false);false);Clear(colAutoBinsV16);Notify(If(varAutoBinsCacheError,"Төхөөрөмжийн кэш шинэчлэгдсэнгүй. Онлайнаар ашиглана уу.","Татсан мөр: " & CountRows(colOfflineBins)),If(varAutoBinsCacheError,NotificationType.Warning,NotificationType.Success));true,false)),
+                                  Set(varBinsScopeStatus,"invalid_response");false));
+                          If(varBinsScopeStatus="ok" && response.ok=true,true,
+                              Set(varAutoBinsError,true);
+              Set(varAutoBinsUpdated,Blank());
+              Clear(colAutoBinsV16);
+              Clear(colOfflineBins);
+              Clear(colPScopedBins);
+              If(!IsBlank(requestOwner),IfError(SaveData(colOfflineBins,"OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false);IfError(ClearData("OfflineBins" & "_TEST5bScoped1_" & requestOwner);true,Set(varAutoBinsCacheError,true);false));Notify(Switch(varBinsScopeStatus,"denied","Агуулахын эрхгүй байна.","legacy","Flow-ийн хувилбар зөрсөн тул өгөгдөл шинэчлэгдсэнгүй.","Агуулахын мэдээллийг баталгаажуулж чадсангүй."),NotificationType.Warning);false),
+                          false))))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(24)*(Min(App.Width/640,App.Height/1136))
+            Text: ="АГУУЛАХ ТАТАХ"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(280)*((App.Width/640))
+            X: =(30)*((App.Width/640))
+            Y: =(317)*((App.Height/1136))
+      - lblItemCount:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(127, 178, 57, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(14)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="Items: " & Text(
+                  CountRows(Distinct(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || ((!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now())) && (pgAccess.LocationCode="*" || ("|" & Upper(Trim(locationCode)) & "|") in pgAccess.LocationCode))))),itemNo)),
+                  "#,##0"
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(310)*((App.Width/640))
+            X: =(330)*((App.Width/640))
+            Y: =(156)*((App.Height/1136))
+      - lblLastItemSync:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(51)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(14)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              =If(
+                  CountRows(colItemSyncInfo) = 0,
+                  "Last Item Sync: -",
+                  With(
+                      {
+                          _syncDate: First(colItemSyncInfo).LastSyncDate
+                      },
+                      If(
+                          IsBlank(_syncDate),
+                          "Last Item Sync: -",
+                          "Last Item Sync: " &
+                          Text(
+                              DateTimeValue(_syncDate),
+                              "yyyy.mm.dd hh:mm"
+                          )
+                      )
+                  )
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(298)*((App.Width/640))
+            X: =(330)*((App.Width/640))
+            Y: =(200)*((App.Height/1136))
+      - lblStockRows:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(127, 178, 57, 1)
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(37)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(14)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="Stock мөр: " &
+              Text(
+                  CountRows(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || ((!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now())) && (pgAccess.LocationCode="*" || ("|" & Upper(Trim(locationCode)) & "|") in pgAccess.LocationCode)))))),
+                  "#,##0"
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(264)*((App.Width/640))
+            X: =(330)*((App.Width/640))
+            Y: =(447)*((App.Height/1136))
+      - tmrStockSync:
+          Control: Timer@2.1.0
+          Properties:
+            AutoPause: =false
+            AutoStart: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+              )
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            Duration: =500
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnTimerEnd: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varStockAutoSync,Set(varStockAutoSync,false);Set(varItemAutoSync,false);If(Connection.Connected && !varStockLoading,Select(btnSyncStock)))
+            OnTimerStart: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+              )
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            Repeat: =varStockAutoSync
+            Size: =(13)*(Min(App.Width/640,App.Height/1136))
+            Start: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),varStockAutoSync
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(280)*((App.Width/640))
+            X: =(360)*((App.Width/640))
+            Y: =(1066)*((App.Height/1136))
+      - tmrItemSync:
+          Control: Timer@2.1.0
+          Properties:
+            AutoPause: =false
+            AutoStart: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),false
+              )
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =ColorFade(Self.BorderColor, 70%)
+            DisabledColor: =ColorFade(Self.Fill, 90%)
+            DisabledFill: =ColorFade(Self.Fill, 70%)
+            Duration: =700
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnTimerEnd: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))) && varStockAutoSync,Set(varStockAutoSync,false);Set(varItemAutoSync,false);If(Connection.Connected && !varStockLoading,Select(btnSyncStock)))
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            Repeat: =true
+            Size: =(13)*(Min(App.Width/640,App.Height/1136))
+            Start: |-
+              =If((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode))),varItemAutoSync
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (false)
+            Width: =(280)*((App.Width/640))
+            X: =(0)*((App.Width/640))
+            Y: =(1066)*((App.Height/1136))
+      - Button18:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: |-
+              =Set(varItemAutoSync, false);
+              Set(varItemBatchNo, 0);
+              Set(varLastItemNo, "0");
+              
+              Clear(colOfflineItems);
+              
+              SaveData(
+                  colOfflineItems,
+                  "OfflineItems_TEST5b_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x"))
+              );
+              
+              ClearCollect(
+                  colItemSyncInfo,
+                  {
+                      LastSyncDate: "2026-08-20T00:00:00Z"
+                  }
+              );
+              
+              SaveData(
+                  colItemSyncInfo,
+                  "ItemSyncInfo"
+              );
+              
+              Notify(
+                  "Барааны local cache бүрэн устгагдлаа.",
+                  NotificationType.Success
+              )
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(18)*(Min(App.Width/640,App.Height/1136))
+            Text: ="ТАТСАН БАРААГ УСТГАХ"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(280)*((App.Width/640))
+            X: =(30)*((App.Width/640))
+            Y: =(822)*((App.Height/1136))
+      - Button19:
+          Control: Classic/Button@2.2.0
+          Properties:
+            BorderColor: =ColorFade(Self.Fill, -15%)
+            BorderThickness: =(2)*(Min(App.Width/640,App.Height/1136))
+            Color: =RGBA(255, 255, 255, 1)
+            DisabledBorderColor: =RGBA(166, 166, 166, 1)
+            Fill: =RGBA(211, 66, 9, 1)
+            FocusedBorderThickness: =(4)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            HoverBorderColor: =ColorFade(Self.BorderColor, 20%)
+            HoverColor: =RGBA(255, 255, 255, 1)
+            HoverFill: =ColorFade(RGBA(211, 66, 9, 1), -20%)
+            OnSelect: |-
+              =Clear(colOfflineStock);
+              
+              If((Lower(User().Email)="od.u@tme.mn" || (!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()))),ClearCollect(colAclOfflineStockDisk,Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || ((!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now())) && (pgAccess.LocationCode="*" || ("|" & Upper(Trim(locationCode)) & "|") in pgAccess.LocationCode))))));SaveData(colAclOfflineStockDisk,"OfflineStock" & "_TEST5bScoped1_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x"))));
+              
+              ClearCollect(
+                  colStockSyncInfo,
+                  {
+                      LastEntryNo: 0
+                  }
+              );
+              
+              SaveData(colStockSyncInfo,"StockSyncInfo" & "_V30_" & Coalesce(Substitute(Text(User().EntraObjectId),"-",""),Substitute(EncodeUrl(Lower(Trim(User().Email))),"%","x")));
+              
+              
+              
+              Set(varLastStockEntryNo, 0);
+              Set(varStockBatchNo, 0);
+              Set(varStockAutoSync, false);
+              
+              Notify(
+                  "Барааны журналын local cache устгагдлаа. Одоо STOCK SYNC дарж дахин татна уу.",
+                  NotificationType.Success
+              )
+            PressedBorderColor: =Self.Fill
+            PressedColor: =Self.Fill
+            PressedFill: =Self.Color
+            RadiusBottomLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusBottomRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopLeft: =(10)*(Min(App.Width/640,App.Height/1136))
+            RadiusTopRight: =(10)*(Min(App.Width/640,App.Height/1136))
+            Size: =(18)*(Min(App.Width/640,App.Height/1136))
+            Text: ="БАРААНЫ ЖУРНАЛ УСТГАХ"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(280)*((App.Width/640))
+            X: =(30)*((App.Width/640))
+            Y: =(924)*((App.Height/1136))
+      - Label29:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(11)*(Min(App.Width/640,App.Height/1136))
+            Text: ="BC-д нийт үүссэн items тоогоор БАРААГ ТАТАХ-р UPDATE хийгдэхгүй бол энэ товч дараад дахин татаарай!"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(310)*((App.Width/640))
+            X: =(330)*((App.Width/640))
+            Y: =(822)*((App.Height/1136))
+      - Label29_1:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(70)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(11)*(Min(App.Width/640,App.Height/1136))
+            Text: ="Нийт барааны журнал Last Entry No-р STOCK SYNC -р таарахгүй бол ашиглаарай"
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(310)*((App.Width/640))
+            X: =(330)*((App.Width/640))
+            Y: =(924)*((App.Height/1136))
+      - Label24:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(55)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="ITEM LOCAL: " &
+              Text(
+                  CountRows(Distinct(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || ((!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now())) && (pgAccess.LocationCode="*" || ("|" & Upper(Trim(locationCode)) & "|") in pgAccess.LocationCode))))),itemNo)),
+                  "#,##0"
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(290)*((App.Width/640))
+            X: =(310)*((App.Width/640))
+            Y: =(14)*((App.Height/1136))
+      - Label32:
+          Control: Label@2.5.1
+          Properties:
+            BorderColor: =RGBA(131, 24, 75, 1)
+            BorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            FocusedBorderThickness: =(0)*(Min(App.Width/640,App.Height/1136))
+            Font: =Font.'Open Sans'
+            Height: =(74)*((App.Height/1136))
+            PaddingBottom: =(5)*((App.Height/1136))
+            PaddingLeft: =(5)*((App.Width/640))
+            PaddingRight: =(5)*((App.Width/640))
+            PaddingTop: =(5)*((App.Height/1136))
+            Size: =(21)*(Min(App.Width/640,App.Height/1136))
+            Text: |-
+              ="STOCK LOCAL: " &
+              Text(
+                  CountRows(Filter(colOfflineStock,(!IsBlank(locationCode) && (Lower(User().Email)="od.u@tme.mn" || ((!IsBlank(pgAccess.ID) && Lower(Trim(pgAccess.UserEmail))=Lower(Trim(User().Email)) && pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now())) && (pgAccess.LocationCode="*" || ("|" & Upper(Trim(locationCode)) & "|") in pgAccess.LocationCode)))))),
+                  "#,##0"
+              )
+            Visible: =((Lower(User().Email)="od.u@tme.mn" || (pgAccess.Active && (IsBlank(pgAccess.ExpiresAt) || pgAccess.ExpiresAt>Now()) && "|sync|" in pgAccess.Title && !IsBlank(pgAccess.LocationCode)))) && (true)
+            Width: =(222)*((App.Width/640))
+            X: =(310)*((App.Width/640))
+            Y: =(69)*((App.Height/1136))
