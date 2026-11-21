@@ -12,11 +12,17 @@ edit('ScrCombined.pa.yaml',[('With({entryTicket:pgRun4f},'+SW,'With({entryTicket
 edit('scrWarehouses.pa.yaml',[('=Set(varPerfDiagV1015,true);If(IsBlank(varCountReceiptV369.SyncKey)','=If(IsBlank(varCountReceiptV369.SyncKey)',1)])
 OLD=('If(Mod(CountRows(colPerfV1015),20)=0,With({w:Sort(LastN(colPerfV1015,20),TotalMs)},Notify("ХУРД · сүүлийн 20 хадгалалт: медиан " & (Index(w,10).TotalMs+Index(w,11).TotalMs)/2 & " мс, хамгийн удаан " & Last(w).TotalMs & " мс (локал бичилт " & Max(w,LocalMs) & " мс), түүх " & Last(colPerfV1015).HistoryRows & " мөр",NotificationType.Information));!IsError(SaveData(colPerfV1015,"PerfV1015_" & Substitute(Text(User().EntraObjectId),"-",""))))')
 NEW=('If(CountRows(colPerfV1015)>=20,With({w:Sort(LastN(colPerfV1015,20),TotalMs),k:"PerfSumV1015_" & Substitute(Text(User().EntraObjectId),"-","")},'
- 'If(!Coalesce(varPerfSumLoadedV1015,false),IfError(LoadData(colPerfSumV1015,k,true),false);Set(varPerfSumLoadedV1015,true));'
+ # read the earlier log into a temp collection; only a successful read unlocks writing to the key
+ 'If(!Coalesce(varPerfSumLoadedV1015,false),If(false,ClearCollect(colPerfSumLoadV1015,colPerfSumV1015));Clear(colPerfSumLoadV1015);'
+ 'If(IfError(LoadData(colPerfSumLoadV1015,k,true);true,false),'
+ 'ClearCollect(colPerfSumMemV1015,colPerfSumV1015);ClearCollect(colPerfSumV1015,colPerfSumLoadV1015);'
+ 'Collect(colPerfSumV1015,ForAll(Sequence(CountRows(colPerfSumMemV1015)) As n,Patch(Index(colPerfSumMemV1015,n.Value),{Block:CountRows(colPerfSumLoadV1015)+n.Value})));'
+ 'Clear(colPerfSumMemV1015);Clear(colPerfSumLoadV1015);Set(varPerfSumLoadedV1015,true),'
+ 'Clear(colPerfSumLoadV1015)));'
  'Collect(colPerfSumV1015,{Block:CountRows(colPerfSumV1015)+1,At:Now(),HistoryRows:Last(colPerfV1015).HistoryRows,MedianMs:(Index(w,10).TotalMs+Index(w,11).TotalMs)/2,P95Ms:Index(w,19).TotalMs,MaxMs:Last(w).TotalMs,LocalMaxMs:Max(w,LocalMs),PrevPersistMs:varPerfPersistMsV1015});'
- 'Notify("ХУРД #" & Last(colPerfSumV1015).Block & " · түүх " & Last(colPerfSumV1015).HistoryRows & " мөр · 20 хадгалалт: медиан " & Last(colPerfSumV1015).MedianMs & " мс, P95 " & Last(colPerfSumV1015).P95Ms & " мс, max " & Last(colPerfSumV1015).MaxMs & " мс, локал max " & Last(colPerfSumV1015).LocalMaxMs & " мс · өмнөх лог бичилт " & If(IsBlank(varPerfPersistMsV1015),"-",varPerfPersistMsV1015<0,"АЛДАА",Text(varPerfPersistMsV1015) & " мс"),NotificationType.Information);'
+ 'Notify("ХУРД #" & Last(colPerfSumV1015).Block & " · түүх " & Last(colPerfSumV1015).HistoryRows & " мөр · 20 хадгалалт: медиан " & Last(colPerfSumV1015).MedianMs & " мс, P95 " & Last(colPerfSumV1015).P95Ms & " мс, max " & Last(colPerfSumV1015).MaxMs & " мс, локал max " & Last(colPerfSumV1015).LocalMaxMs & " мс · өмнөх лог бичилт " & If(IsBlank(varPerfPersistMsV1015),"-",varPerfPersistMsV1015=-2,"ХИЙГДЭЭГҮЙ (хуучин логийг уншиж чадаагүй тул дарж бичсэнгүй)",varPerfPersistMsV1015<0,"АЛДАА",Text(varPerfPersistMsV1015) & " мс"),NotificationType.Information);'
  'Clear(colPerfV1015);Set(varPerfT2V1015,Now());'
- 'If(IsError(SaveData(colPerfSumV1015,k)),Set(varPerfPersistMsV1015,-1),Set(varPerfPersistMsV1015,DateDiff(varPerfT2V1015,Now(),TimeUnit.Milliseconds)))))')
+ 'If(Coalesce(varPerfSumLoadedV1015,false),If(IsError(SaveData(colPerfSumV1015,k)),Set(varPerfPersistMsV1015,-1),Set(varPerfPersistMsV1015,DateDiff(varPerfT2V1015,Now(),TimeUnit.Milliseconds))),Set(varPerfPersistMsV1015,-2))))')
 edit('scrWarehouses.pa.yaml',[(OLD,NEW,1)])
 # single switch: first statement of App.OnStart (TEST = true, production = false)
 s=open(B+'App.pa.yaml',encoding='utf-8',newline='').read()
